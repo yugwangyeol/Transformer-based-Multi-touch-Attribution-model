@@ -10,7 +10,7 @@ def main(config):
     if config.mode == 'train':  
         train_data, valid_data = load_dataset(config.mode) # mode에 따른 load dataset -> util로 이동
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
-                                           train_data=train_data, valid_data=valid_data) # -> util로 이동
+                                    train_data=train_data, valid_data=valid_data) # -> util로 이동
 
         trainer = Trainer(params, config.mode, train_iter=train_iter, valid_iter=valid_iter) 
         trainer.train()
