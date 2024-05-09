@@ -9,26 +9,85 @@ class GradReverse(torch.autograd.Function):
     def backward(self, grad_output): # 역전파 시에 gradient에 음수를 취함
         return (grad_output * -1)
 
-class domain_classifier(nn.Module):
+class cms_classifier(nn.Module):
     def __init__(self):
-        super(domain_classifier, self).__init__()
-        self.fc1 = nn.Linear(100, 10)
-        self.fc2 = nn.Linear(10, 1) # segment 별로 생성해야 하나?
+        super(cms_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100) # representation 크기 따라 변경
+        self.fc1 = nn.Linear(100, 20) 
+        self.fc2 = nn.Linear(20, 13)
     def forward(self, x):
-        x = GradReverse.apply(x) # gradient reverse
+        x = GradReverse.apply(x) # gradient revers
+        x = F.leaky_relu(self.fc0(x))
+        x = F.leaky_relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class gender_classifier(nn.Module):
+    def __init__(self):
+        super(gender_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100)
+        self.fc1 = nn.Linear(100, 10) 
+        self.fc2 = nn.Linear(10, 1)
+    
+    def forward(self, x):
+        x = GradReverse.apply(x)
+        x = F.leaky_relu(self.fc0(x))
         x = F.leaky_relu(self.fc1(x))
         x = self.fc2(x)
         return torch.sigmoid(x)
 
-class label_classifier(nn.Module):
+class age_classifier(nn.Module):
     def __init__(self):
-        super(label_classifier, self).__init__()
+        super(age_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100)
+        self.fc1 = nn.Linear(100, 25)
+        self.fc2 = nn.Linear(25, 7)
+
+    def forward(self, x):
+        x = GradReverse.apply(x)
+        x = F.leaky_relu(self.fc0(x))
+        x = F.leaky_relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class pvalue_classifier(nn.Module):
+    def __init__(self):
+        super(pvalue_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100)
+        self.fc1 = nn.Linear(100, 10)
+        self.fc2 = nn.Linear(10, 4)
+
+    def forward(self, x):
+        x = GradReverse.apply(x)
+        x = F.leaky_relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class shopping_classifier(nn.Module):
+    def __init__(self):
+        super(shopping_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100)
+        self.fc1 = nn.Linear(100, 25) 
+        self.fc2 = nn.Linear(25, 3)
+
+    def forward(self, x):
+        x = GradReverse.apply(x)
+        x = F.leaky_relu(self.fc0(x))
+        x = F.leaky_relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class conversion_classifier(nn.Module):
+    def __init__(self):
+        super(conversion_classifier, self).__init__()
+        self.fc0 = nn.Linear(512, 100)
         self.fc1 = nn.Linear(100, 25)
         self.fc2 = nn.Linear(25, 1)
 
     def forward(self, x):
+        self.fc0 = nn.Linear(512, 100)
         x = F.leaky_relu(self.fc1(x))
         x = self.fc2(x)
-        return x
+        return torch.sigmoid(x)
 
 # https://jimmy-ai.tistory.com/365
