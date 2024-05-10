@@ -19,33 +19,38 @@ def load_dataset(mode):
     data_dir = Path().cwd() / 'data' # directory 설정
 
     if mode == 'train': # mode 설정
-        train_file = os.path.join(data_dir, 'train.csv')
-        train_data = pd.read_csv(train_file, encoding='utf-8') # csv 불러오기
+        train_sequential_path = os.path.join(data_dir, 'train_sequential.csv')
+        train_segment_path = os.path.join(data_dir, 'segment.csv')
+        train_sequential_data = pd.read_csv(train_sequential_path, encoding='utf-8')
+        train_segment_data = pd.read_csv(train_segment_path, encoding='utf-8')
 
-        valid_file = os.path.join(data_dir, 'valid.csv')
-        valid_data = pd.read_csv(valid_file, encoding='utf-8') # csv 불러오기
+        valid_sequential_path = os.path.join(data_dir, 'valid_sequential.csv')
+        valid_segment_path = os.path.join(data_dir, 'segment.csv')
+        valid_sequential_data = pd.read_csv(valid_sequential_path, encoding='utf-8')
+        valid_segment_data = pd.read_csv(valid_segment_path, encoding='utf-8')
+
+        train_data = pd.merge(train_sequential_data, train_segment_data, on='User_id')
+        valid_data = pd.merge(valid_sequential_data, valid_segment_data, on='User_id')
 
         print(f'Number of training examples: {len(train_data)}')
         print(f'Number of validation examples: {len(valid_data)}')
 
-        return train_data, valid_data # data return
+        return train_data, valid_data
 
     else:
-        test_file = os.path.join(data_dir, 'test.csv')
-        test_data = pd.read_csv(test_file, encoding='utf-8')
+        test_sequential_path = os.path.join(data_dir, 'test_sequential.csv')
+        test_segment_path = os.path.join(data_dir, 'segment.csv')
+        test_sequential_data = pd.read_csv(test_sequential_path, encoding='utf-8')
+        test_segment_data = pd.read_csv(test_segment_path, encoding='utf-8')
+
+        test_data = pd.merge(test_sequential_data, test_segment_data, on='User_id')
 
         print(f'Number of testing examples: {len(test_data)}')
 
         return test_data
 
-def clean_text(text):
-    """
-    입력문에서 특수문자를 삭제하여 정규화하다
-    """
-    text = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`…》]', '', text) #특수문자를 찾고 변형 
-    return text
 
-def convert_to_dataset(data, kor, eng):
+def convert_to_dataset(data):
     """
     입력 DataFrame을 전처리하고 Panda DataFrame을 Torchtext Dataset으로 변환합니다.
     Args:
@@ -79,19 +84,11 @@ def make_iter(batch_size,mode,train_data,valid_data,test_data):
     # load text and label field made by build_pickles.py
     # build_message에서 만든 텍스트 및 레이블 필드를 로드
 
-    file_kor = open('pickles/kor.pickle','rb') 
-    # 한국 pickle
-    #rb는 파일을 바이너리 읽기 모드로 열겠다는 것을 나타냄, read,binary
-    kor = pickle.load(file_kor)
-
-    file_eng = open('pickles/eng.pickle','rb')
-    eng = pickle.load(file_eng)
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # device 설정
 
     if mode=='train':
-        train_data = convert_to_dataset(train_data,kor,eng)
-        valid_data = convert_to_dataset(valid_data,kor,eng)
+        train_data = convert_to_dataset(train_data)
+        valid_data = convert_to_dataset(valid_data)
 
         print(f'Make Iterators for training ....')
 
@@ -196,8 +193,8 @@ class Params:
 
         # add <sos> and <eos> tokens' indices used to predict the target sentence
         params = {'input_dim': len(kor.vocab), 'output_dim': len(eng.vocab),
-                  'sos_idx': eng.vocab.stoi['<sos>'], 'eos_idx': eng.vocab.stoi['<eos>'],
-                  'pad_idx': eng.vocab.stoi['<pad>'], 'device': device}
+                'sos_idx': eng.vocab.stoi['<sos>'], 'eos_idx': eng.vocab.stoi['<eos>'],
+                'pad_idx': eng.vocab.stoi['<pad>'], 'device': device}
 
         self.__dict__.update(params)
     
