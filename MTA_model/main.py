@@ -24,7 +24,7 @@ def main(config):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Transformer Neural Machine Translation') # parser 생성
+    parser = argparse.ArgumentParser(description='Transformer based MTA') # parser 생성
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'test']) # argument 추가
     args = parser.parse_args() # parser 변수 지정
     main(args) # main 함수 실행 

@@ -28,9 +28,15 @@ class EncoderLayer(nn.Module):
 class Encoder(nn.Module):
     def __init__(self,params):
         super(Encoder,self).__init__()
-        self.token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx) #embedding 지정
+        self.cam_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx) #embedding 지정
+        self.cate_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
+        self.brand_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
+        self.price_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
 
-        nn.init.normal_(self.token_embedding,mean=0,std=params.hidden_dim**-0.5)
+        nn.init.normal_(self.cam_token_embedding,mean=0,std=params.hidden_dim**-0.5)
+        nn.init.normal_(self.cate_token_embedding,mean=0,std=params.hidden_dim**-0.5)
+        nn.init.normal_(self.brand_token_embedding,mean=0,std=params.hidden_dim**-0.5)
+        nn.init.normal_(self.price_token_embedding,mean=0,std=params.hidden_dim**-0.5)
         self.embedding_scale = params.hidden_dim**0.5  # embedding_scale 생성 -> 규제항
 
         self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len+1,params.hidden_dim),freeze=True) #positional encoding 생성
@@ -39,12 +45,13 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(params.dropout)
         self.layer_norm = nn.LayerNorm(params.hidden_dim, eps=1e-6)
     
-    def forward(self,source):
+    def forward(self,cam_sequential,cate_sequential,brand_sequential,price_sequential):
 
-        source_mask = create_source_mask(source) # pad 마스크 처리
-        source_pos = create_position_vector(source) #position 벡터 생성
+        source_mask = create_source_mask(cam_sequential) # pad 마스크 처리
+        source_pos = create_position_vector(cam_sequential) #position 벡터 생성
 
-        source = self.token_embedding(source)*self.embedding_scale
+        source = self.token_embedding(self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + \
+                                    self.brand_token_embedding(brand_sequential) + self.price_token_embedding(price_sequential))*self.embedding_scale # embedding 생성    
         source = self.dropout(source+self.pos_embedding(source_pos)) # source 생성 embedding  + position 
 
         for encoder_layer in self.encoder_layer:
