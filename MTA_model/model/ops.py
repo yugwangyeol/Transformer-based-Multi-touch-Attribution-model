@@ -60,7 +60,7 @@ def create_subsequent_mask(target):
          [0, 0, 0, 0, 0]]
     :param target: [batch size, target length]
     :return:
-    """
+    """ 
     
     batch_size, target_length = target.size() #batch,target_length 지정
 

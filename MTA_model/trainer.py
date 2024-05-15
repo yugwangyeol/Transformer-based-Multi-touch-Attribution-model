@@ -49,12 +49,20 @@ class Trainer:
 
             for batch in self.train_iter:
                 self.optimizer.zero_grad()
-                sequential = batch.sequential
-                segment = batch.segment ##! 이 부분 병하꺼 완성되면 segment 연결 해서 넣기
+                cam_sequential = batch.cam_sequential
+                cate_sequential = batch.cate_sequential
+                brand_sequential = batch.brand_sequential
+                price_sequential = batch.price_sequential
+                segment = batch.segment
+                cms_label = batch.cms
+                gender_label = batch.gender
+                age_label = batch.age
+                pvalue_label = batch.pvalue
+                shopping_label = batch.shopping
+                conversion_label = batch.label
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(sequential,segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential,cate_sequential,brand_sequential,price_sequential,segment)
 
-                ##! 이 부분 lsos에 넣는 값에 맞춰서 수정하면 될거 같아
                 output = output.contiguous().view(-1, output.shape[-1]) 
                 target = target[:, 1:].contiguous().view(-1) 
                 loss = self.criterion(cms_output,cms_label,gender_output, gender_label, age_output, age_label,
@@ -87,10 +95,19 @@ class Trainer:
 
         with torch.no_grad():
             for batch in self.valid_iter: 
-                sequential = batch.sequential
+                cam_sequential = batch.cam_sequential
+                cate_sequential = batch.cate_sequential
+                brand_sequential = batch.brand_sequential
+                price_sequential = batch.price_sequential
                 segment = batch.segment
+                cms_label = batch.cms
+                gender_label = batch.gender
+                age_label = batch.age
+                pvalue_label = batch.pvalue
+                shopping_label = batch.shopping
+                conversion_label = batch.label
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(sequential,segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential,cate_sequential,brand_sequential,price_sequential,segment)
 
                 output = output.contiguous().view(-1, output.shape[-1])
                 target = target[:, 1:].contiguous().view(-1)
@@ -111,10 +128,19 @@ class Trainer:
 
         with torch.no_grad():
             for batch in self.test_iter:
-                sequential = batch.sequential
+                cam_sequential = batch.cam_sequential
+                cate_sequential = batch.cate_sequential
+                brand_sequential = batch.brand_sequential
+                price_sequential = batch.price_sequential
                 segment = batch.segment
+                cms_label = batch.cms
+                gender_label = batch.gender
+                age_label = batch.age
+                pvalue_label = batch.pvalue
+                shopping_label = batch.shopping
+                conversion_label = batch.label
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(sequential,segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential,cate_sequential,brand_sequential,price_sequential,segment)
 
                 output = output.contiguous().view(-1, output.shape[-1])
                 target = target[:, 1:].contiguous().view(-1)

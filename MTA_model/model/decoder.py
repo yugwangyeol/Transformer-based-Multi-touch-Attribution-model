@@ -13,14 +13,14 @@ class DecoderLayer(nn.Module):
         self.encoder_attention = MultiHeadAttention(params) # 함수 이동
         self.position_wise_ffn = PositionWiseFeedForward(params)
 
-    def forward(self, target, encoder_output, target_mask, dec_enc_mask):
+    def forward(self, target, encoder_output, dec_enc_mask):
         # target          = [batch size, target length, hidden dim]
         # encoder_output  = [batch size, source length, hidden dim]
         # target_mask     = [batch size, target length, target length]
         # dec_enc_mask    = [batch size, target length, source length]
 
         norm_target = self.layer_norm(target) # layer norm 적용
-        output = target + self.self_attention(norm_target, norm_target, norm_target, target_mask)[0] # decoder self attention
+        output = target + self.self_attention(norm_target, norm_target, norm_target)[0] # decoder self attention ##!
 
         # 디코더 스택에서 쿼리는 Encoder의 출력이고 키와 값은 인코더의 출력입니다.
         norm_output = self.layer_norm(output)
@@ -59,7 +59,7 @@ class Decoder(nn.Module):
         # target = [batch size, target length, hidden dim]
 
         for decoder_layer in self.decoder_layers:
-            target, attention_map = decoder_layer(target, encoder_output, target_mask, dec_enc_mask)
+            target, attention_map = decoder_layer(target, encoder_output, dec_enc_mask) ##!
         # target = [batch size, target length, hidden dim]
 
         target = self.layer_norm(target)

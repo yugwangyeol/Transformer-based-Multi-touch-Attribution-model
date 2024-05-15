@@ -13,29 +13,75 @@ import matplotlib.font_manager as fm
 from torchtext import data as ttd
 from torchtext.data import Example, Dataset
 
-def load_dataset(mode):
-    print(f'Loading AI Hub Kor-Eng translation dataset and converting it to pandas DataFrame . . .')
+from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
+from sklearn.model_selection import train_test_split
 
+class CustomDataset(Dataset):
+    def __init__(self, data, max_sequence_length):
+        self.cam_sequential,self.cate_sequential,self.brand_sequential,self.price_sequential, self.segment, self.label, self.cms, self.gender, self.age, self.pvalue, self.shopping = self.pad_embed(data, max_sequence_length)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        return {
+            'cam_sequential': self.cam_sequential[idx],
+            'cate_sequential': self.cate_sequential[idx],
+            'brand_sequential': self.brand_sequential[idx],
+            'price_sequential': self.price_sequential[idx],
+            'segment': self.segment[idx],
+            'cms': self.cms[idx],
+            'gender': self.gender[idx],
+            'age': self.age[idx],
+            'pvalue': self.pvalue[idx],
+            'shopping': self.shopping[idx],
+            'label': self.labels[idx]
+        }
+
+    def pad_embed(self, data, max_sequence_length):
+        # Padding
+        cam_sequential_padded = pad_sequence(data['cam_sequential'], maxlen=max_sequence_length, padding='post')
+        cate_sequential_padded = pad_sequence(data['cate_sequential'], maxlen=max_sequence_length, padding='post')
+        brand_sequential_padded = pad_sequence(data['brand_sequential'], maxlen=max_sequence_length, padding='post')
+        price_sequential_padded = pad_sequence(data['price_sequential'], maxlen=max_sequence_length, padding='post')
+
+        return torch.tensor(cam_sequential_padded), torch.tensor(cate_sequential_padded), \
+                torch.tensor(brand_sequential_padded), torch.tensor(price_sequential_padded), \
+                torch.tensor(data['segment']), torch.tensot(data['label']), \
+                torch.tensor(data['cms']), torch.tensor(data['gender']), torch.tensor(data['age']), torch.tensor(data['pvalue']), torch.tensor(data['shopping'])
+
+def load_dataset(mode):
     data_dir = Path().cwd() / 'data' # directory 설정
 
     if mode == 'train': # mode 설정
-        train_sequential_path = os.path.join(data_dir, 'train_sequential.csv')
-        train_segment_path = os.path.join(data_dir, 'segment.csv')
-        train_sequential_data = pd.read_csv(train_sequential_path, encoding='utf-8')
-        train_segment_data = pd.read_csv(train_segment_path, encoding='utf-8')
+        cam_sequential_path = os.path.join(data_dir, 'cam_sequential.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_sequential.csv')
+        brand_sequential_path = os.path.join(data_dir, 'brand_sequential.csv')
+        price_sequential_path = os.path.join(data_dir, 'price_sequential.csv')
+        segment_path = os.path.join(data_dir, 'segment.csv')
 
-        valid_sequential_path = os.path.join(data_dir, 'valid_sequential.csv')
-        valid_segment_path = os.path.join(data_dir, 'segment.csv')
-        valid_sequential_data = pd.read_csv(valid_sequential_path, encoding='utf-8')
-        valid_segment_data = pd.read_csv(valid_segment_path, encoding='utf-8')
+        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8')
+        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
+        brand_sequential_data = pd.read_csv(brand_sequential_path, encoding='utf-8')
+        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
+        segment_data = pd.read_csv(segment_path, encoding='utf-8')
 
-        train_data = pd.merge(train_sequential_data, train_segment_data, on='User_id')
-        valid_data = pd.merge(valid_sequential_data, valid_segment_data, on='User_id')
+        data = cam_sequential_data
+        data['cate_sequential'] = cate_sequential_data['cate_sequential']
+        data['brand_sequential'] = brand_sequential_data['brand_sequential']
+        data['price_sequential'] = price_sequential_data['price_sequential']
+
+        data = pd.merge(data, segment_data, on='User_id')
+
+        # train, valid 데이터셋으로 나누기
+        train_data, valid_data = train_test_split(data, test_size=0.2, random_state=42)
 
         print(f'Number of training examples: {len(train_data)}')
         print(f'Number of validation examples: {len(valid_data)}')
 
-        return train_data, valid_data
+        return CustomDataset(train_data), CustomDataset(valid_data)
 
     else:
         test_sequential_path = os.path.join(data_dir, 'test_sequential.csv')
@@ -47,37 +93,8 @@ def load_dataset(mode):
 
         print(f'Number of testing examples: {len(test_data)}')
 
-        return test_data
+        return CustomDataset(test_data)
 
-
-def convert_to_dataset(data):
-    """
-    입력 DataFrame을 전처리하고 Panda DataFrame을 Torchtext Dataset으로 변환합니다.
-    Args:
-        data: (DataFrame) pandas DataFrame to be converted into torchtext Dataset
-        kor: torchtext Field containing Korean sentence
-        eng: torchtext Field containing English sentence
-
-    Returns:
-        (Dataset) torchtext Dataset containing 'kor' and 'eng' Fields
-    """
-    # drop missing values not containing str value from DataFrame
-    # DataFrame에서 str 값을 포함하지 않는 결측값 삭제
-    missing_rows = [idx for idx, row in data.iterrows() if type(row.korean) != str or type(row.english) != str]
-    data = data.drop(missing_rows)
-
-    # convert each row of DataFrame to torchtext 'Example' containing 'kor' and 'eng' Fields
-    # 데이터 프레임의 각 행을 'kor' 및 'eng' 필드가 포함된 '예시' 텍스트로 변환
-    list_of_examples = [Example.fromlist(row.apply(lambda x: clean_text(x)).tolist(), # -> 텍스트 전처리 위 함수 ->
-                                        fields=[('kor', kor), ('eng', eng)]) for _, row in data.iterrows()]
-    
-    #Example.fromlist(): Example 클래스의 정적 메서드로, 리스트 형태의 데이터를 받아 Example 객체를 생성, 여기서는 fields 파라미터를 사용하여 어떤 필드에 어떤 데이터를 저장할지를 지정
-    #[('kor', kor), ('eng', eng)]: Example 객체에 저장될 필드들을 지정하는데, ('kor', kor)는 'kor'라는 필드에 대응되는 데이터는 kor 변수에서 가져오고, 'eng'라는 필드에 대응되는 데이터는 eng 변수에서 가져온다는 의미
-
-    # construct torchtext 'Dataset' using torchtext 'Example' list
-    dataset = Dataset(examples=list_of_examples, fields=[('kor', kor), ('eng', eng)])
-
-    return dataset
 
 def make_iter(batch_size,mode,train_data,valid_data,test_data):
     #Panda DataFrame을 Torchtext Dataset으로 변환하고 모델을 교육하고 테스트하는 데 사용할 반복기를 만듬
@@ -87,8 +104,8 @@ def make_iter(batch_size,mode,train_data,valid_data,test_data):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # device 설정
 
     if mode=='train':
-        train_data = convert_to_dataset(train_data)
-        valid_data = convert_to_dataset(valid_data)
+        train_data = load_dataset(train_data)
+        valid_data = load_dataset(valid_data)
 
         print(f'Make Iterators for training ....')
 
@@ -100,27 +117,21 @@ def make_iter(batch_size,mode,train_data,valid_data,test_data):
             (train_data,valid_data),
             # 버킷 반복기는 데이터를 그룹화하기 위해 어떤 기능을 사용해야 하는지 알려주어야 함
             # 우리의 경우, 우리는 예제 텍스트를 사용하여 데이터 세트를 정렬
-            sort_key= lambda sent : len(sent.kor),
-            sort_within_batch=True,
             batch_size=batch_size,
             device=device
         )
         #여기서 BucketIterator.splits 함수는 여러 데이터셋을 사용하여 BucketIterator를 생성
-        #sort_key: 데이터를 정렬할 기준을 지정 -> 이 경우에는 kor 필드의 길이를 기준으로 데이터를 정렬하도록 되어 있음
-        #sort_within_batch: 미니배치 내에서도 정렬을 수행할지 여부를 결정
         #이렇게 설정된 train_iter와 valid_iter는 데이터셋을 미니배치로 나누어주는 반복자(iterator) 역
 
         return train_iter,valid_iter
     else:
-        test_data = convert_to_dataset(test_data,kor,eng)
+        test_data = load_dataset(test_data)
         dummy = list()
 
         print(f'Make Iterators for testing...')
 
         test_iter, _ = ttd.BucketIterator.splits(
             (test_data,dummy),
-            sort_key=lambda sent:len(sent.kor),
-            sort_within_batch=True,
             batch_size=batch_size,
             device=device)
     return test_iter
