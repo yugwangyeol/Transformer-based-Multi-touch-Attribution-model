@@ -15,9 +15,9 @@ class Transformer(nn.Module):
         self.shopping_classifier = shopping_classifier()
         self.conversion_classifier = conversion_classifier()
     
-    def forward(self,cam_sequential,cate_sequential,brand_sequential,price_sequential,segment):
+    def forward(self,cam_sequential,cate_sequential,price_sequential,segment):
 
-        encoder_output = self.encoder(cam_sequential,cate_sequential,brand_sequential,price_sequential)
+        encoder_output = self.encoder(cam_sequential,cate_sequential,price_sequential)
         cms_output = self.cms_classifier(encoder_output)
         gender_output = self.gender_classifier(encoder_output)
         age_output = self.age_classifier(encoder_output)

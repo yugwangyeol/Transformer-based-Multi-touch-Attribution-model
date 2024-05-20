@@ -3,12 +3,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-pickle_eng = open('pickles/eng.pickle','rb')
-eng = pickle.load(pickle_eng)
-pad_idx = eng.vocab.stoi['<pad>']
+
+pad_idx = 0
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def init_weigth(layer): #가중치 초기회
+def init_weight(layer): #가중치 초기회
     nn.init.xavier_uniform_(layer.weight)
     if layer.bias is not None:
         nn.init.constant_(layer.bias,0) #편향을 0으로 초기화

@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from model.ops import init_weigth
+from model.ops import init_weight
 
 class PositionWiseFeedForward(nn.Module): # 마지막에 늘렸다가 줄이는 부분
     def __init__(self,params):
@@ -10,8 +10,8 @@ class PositionWiseFeedForward(nn.Module): # 마지막에 늘렸다가 줄이는 
         self.conv1 = nn.Conv1d(params.hidden_dim,params.feed_forward_dim,kernel_size=1)
         self.conv2 = nn.Conv1d(params.feed_forward_dim,params.hidden_dim,kernel_size=1)
 
-        init_weigth(self.conv1)
-        init_weigth(self.conv2)
+        init_weight(self.conv1)
+        init_weight(self.conv2)
         self.dropout = nn.Dropout(params.dropout)
 
     def forward(self,x):
