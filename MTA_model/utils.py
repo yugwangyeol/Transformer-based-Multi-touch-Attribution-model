@@ -15,21 +15,20 @@ from torchtext.data import Example, Dataset
 
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence
 from sklearn.model_selection import train_test_split
+from torchtext.data import Dataset
 
 class CustomDataset(Dataset):
     def __init__(self, data, max_sequence_length):
-        self.cam_sequential,self.cate_sequential,self.brand_sequential,self.price_sequential, self.segment, self.label, self.cms, self.gender, self.age, self.pvalue, self.shopping = self.pad_embed(data, max_sequence_length)
+        self.cam_sequential,self.cate_sequential,self.price_sequential, self.segment, self.label, self.cms, self.gender, self.age, self.pvalue, self.shopping = self.pad_embed(data, max_sequence_length)
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.label)
 
     def __getitem__(self, idx):
         return {
             'cam_sequential': self.cam_sequential[idx],
             'cate_sequential': self.cate_sequential[idx],
-            'brand_sequential': self.brand_sequential[idx],
             'price_sequential': self.price_sequential[idx],
             'segment': self.segment[idx],
             'cms': self.cms[idx],
@@ -37,43 +36,71 @@ class CustomDataset(Dataset):
             'age': self.age[idx],
             'pvalue': self.pvalue[idx],
             'shopping': self.shopping[idx],
-            'label': self.labels[idx]
+            'label': self.label[idx]
         }
+
+    def pad_sequences(self, sequences, max_length, padding_value=0):
+        padded_sequences = []
+        for seq in sequences:
+            # 시퀀스를 정수 또는 실수 리스트로 변환
+
+            seq = list(map(float, seq.split()))
+
+            # 시퀀스 길이 가져오기
+            length = len(seq)
+            seq = torch.tensor(seq)  # 리스트를 텐서로 변환
+            # max_length에 도달할 때까지 padding_value로 패딩 추가
+            if length < max_length:
+                padding = torch.full((max_length - length,), padding_value)
+                padded_seq = torch.cat((seq, padding), dim=0)
+            else:
+                padded_seq = seq[:max_length]  # max_length를 초과하는 경우 자르기
+            padded_sequences.append(padded_seq)
+        # 리스트를 텐서로 변환하여 반환
+        return torch.stack(padded_sequences)
 
     def pad_embed(self, data, max_sequence_length):
         # Padding
-        cam_sequential_padded = pad_sequence(data['cam_sequential'], maxlen=max_sequence_length, padding='post')
-        cate_sequential_padded = pad_sequence(data['cate_sequential'], maxlen=max_sequence_length, padding='post')
-        brand_sequential_padded = pad_sequence(data['brand_sequential'], maxlen=max_sequence_length, padding='post')
-        price_sequential_padded = pad_sequence(data['price_sequential'], maxlen=max_sequence_length, padding='post')
+        cam_sequential_padded = self.pad_sequences(data['cam_sequential'].values, max_sequence_length)
+        cate_sequential_padded = self.pad_sequences(data['cate_sequential'].values, max_sequence_length)
+        price_sequential_padded = self.pad_sequences(data['price_sequential'].values, max_sequence_length)
+        segment = self.pad_sequences(data['segment'].values, 5)
 
-        return torch.tensor(cam_sequential_padded), torch.tensor(cate_sequential_padded), \
-                torch.tensor(brand_sequential_padded), torch.tensor(price_sequential_padded), \
-                torch.tensor(data['segment']), torch.tensot(data['label']), \
-                torch.tensor(data['cms']), torch.tensor(data['gender']), torch.tensor(data['age']), torch.tensor(data['pvalue']), torch.tensor(data['shopping'])
+        # segment, label, cms, gender, age, pvalue, shopping을 float 형태로 변환
+        label = data['label'].astype(float).values
+        cms = data['cms'].astype(float).values
+        gender = data['gender'].astype(float).values
+        age = data['age'].astype(float).values
+        pvalue = data['pvalue'].astype(float).values
+        shopping = data['shopping'].astype(float).values
+
+        return cam_sequential_padded, cate_sequential_padded, \
+            price_sequential_padded, segment, torch.tensor(label), \
+            torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
 
 def load_dataset(mode):
-    data_dir = Path().cwd() / 'data' # directory 설정
+    data_dir = '../../Data' # directory 설정
 
     if mode == 'train': # mode 설정
-        cam_sequential_path = os.path.join(data_dir, 'cam_sequential.csv')
-        cate_sequential_path = os.path.join(data_dir, 'cate_sequential.csv')
-        brand_sequential_path = os.path.join(data_dir, 'brand_sequential.csv')
-        price_sequential_path = os.path.join(data_dir, 'price_sequential.csv')
-        segment_path = os.path.join(data_dir, 'segment.csv')
+        cam_sequential_path = os.path.join(data_dir, 'campaign_id.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_id.csv')
+        price_sequential_path = os.path.join(data_dir, 'price.csv')
+        segment_path = os.path.join(data_dir, 'sampled_user_segment.csv')
 
         cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8')
         cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
-        brand_sequential_data = pd.read_csv(brand_sequential_path, encoding='utf-8')
         price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
         segment_data = pd.read_csv(segment_path, encoding='utf-8')
+        segment_data.columns = ['user_id',"cms_group_id","gender","age_level","pvalue_level","shopping_level",'segment']
 
         data = cam_sequential_data
-        data['cate_sequential'] = cate_sequential_data['cate_sequential']
-        data['brand_sequential'] = brand_sequential_data['brand_sequential']
-        data['price_sequential'] = price_sequential_data['price_sequential']
+        data['cate_sequential'] = cate_sequential_data['seq_space_sep']
+        data['price_sequential'] = price_sequential_data['seq_space_sep']
 
-        data = pd.merge(data, segment_data, on='User_id')
+        data = pd.merge(data, segment_data, on='user_id')
+        data = data.drop(['user_id','num_user'], axis=1)
+        data.columns = ['cam_sequential','label','cate_sequential','price_sequential','cms',
+                        'gender','age','pvalue','shopping','segment']
 
         # train, valid 데이터셋으로 나누기
         train_data, valid_data = train_test_split(data, test_size=0.2, random_state=42)
@@ -81,7 +108,7 @@ def load_dataset(mode):
         print(f'Number of training examples: {len(train_data)}')
         print(f'Number of validation examples: {len(valid_data)}')
 
-        return CustomDataset(train_data), CustomDataset(valid_data)
+        return CustomDataset(train_data,50), CustomDataset(valid_data,50)
 
     else:
         test_sequential_path = os.path.join(data_dir, 'test_sequential.csv')
@@ -96,45 +123,31 @@ def load_dataset(mode):
         return CustomDataset(test_data)
 
 
-def make_iter(batch_size,mode,train_data,valid_data,test_data):
+def make_iter(batch_size,mode,train_data,valid_data,test_data=None):
     #Panda DataFrame을 Torchtext Dataset으로 변환하고 모델을 교육하고 테스트하는 데 사용할 반복기를 만듬
     # load text and label field made by build_pickles.py
     # build_message에서 만든 텍스트 및 레이블 필드를 로드
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # device 설정
 
-    if mode=='train':
-        train_data = load_dataset(train_data)
-        valid_data = load_dataset(valid_data)
-
+    if mode == 'train':
         print(f'Make Iterators for training ....')
-
-        '''
-        Pytorch의 dataloader와 비슷한 역할을 함
-        하지만 dataloader 와 다르게 비슷한 길이의 문장들끼리 batch를 만들기 때문에 padding의 개수를 최소화할 수 있음
-        '''
         train_iter, valid_iter = ttd.BucketIterator.splits(
-            (train_data,valid_data),
-            # 버킷 반복기는 데이터를 그룹화하기 위해 어떤 기능을 사용해야 하는지 알려주어야 함
-            # 우리의 경우, 우리는 예제 텍스트를 사용하여 데이터 세트를 정렬
+            (train_data, valid_data),
             batch_size=batch_size,
             device=device
         )
-        #여기서 BucketIterator.splits 함수는 여러 데이터셋을 사용하여 BucketIterator를 생성
-        #이렇게 설정된 train_iter와 valid_iter는 데이터셋을 미니배치로 나누어주는 반복자(iterator) 역
-
-        return train_iter,valid_iter
+        return train_data, valid_data
     else:
         test_data = load_dataset(test_data)
         dummy = list()
-
         print(f'Make Iterators for testing...')
-
         test_iter, _ = ttd.BucketIterator.splits(
-            (test_data,dummy),
+            (test_data, dummy),
             batch_size=batch_size,
-            device=device)
-    return test_iter
+            device=device
+        )
+        return test_iter
 
 def epoch_time(start_time,end_tiem): # epoch 시간 재는 함수
     elapsed_time = end_tiem - start_time
@@ -173,43 +186,36 @@ def display_attention(condidate, translation, attention):
 
 class Params:
     """
-    json 파일에서 하이퍼파라미터를 로드하는 클래스
-    예제:
+    Class that loads hyperparameters from a json file
+    Example:
     ```
     params = Params(json_path)
     print(params.learning_rate)
-    params.learning_rate = 0.5 # params의 learning_rate 값 변경
+    params.learning_rate = 0.5  # change the value of learning_rate in params
     ```
     """
 
-    def __init__(self,json_path):
+    def __init__(self, json_path):
         self.update(json_path)
         self.load_vocab()
 
-    def update(self,json_path):
-        #Loads parameters from json file
+    def update(self, json_path):
+        """Loads parameters from json file"""
         with open(json_path) as f:
             params = json.load(f)
             self.__dict__.update(params)
-    
-    def load_vocab(self):
-        pickle_kor = open('pickles/kor.pickle', 'rb')
-        kor = pickle.load(pickle_kor)
 
-        pickle_eng = open('pickles/eng.pickle', 'rb')
-        eng = pickle.load(pickle_eng)
+    def load_vocab(self):
 
         # add device information to the the params
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # add <sos> and <eos> tokens' indices used to predict the target sentence
-        params = {'input_dim': len(kor.vocab), 'output_dim': len(eng.vocab),
-                'sos_idx': eng.vocab.stoi['<sos>'], 'eos_idx': eng.vocab.stoi['<eos>'],
-                'pad_idx': eng.vocab.stoi['<pad>'], 'device': device}
+        params = {'input_dim': 50, 'output_dim': 50, 'device': device, 'pad_idx':0} #!!
 
         self.__dict__.update(params)
-    
+
     @property
     def dict(self):
-        #Params 인스턴스에 `params.dict['learning_rate']`로 딕트와 유사한 접근 권한을 부여.
-        return self.__dict__ 
+        """Gives dict-like access to Params instance by `params.dict['learning_rate']`"""
+        return self.__dict__

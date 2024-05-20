@@ -20,8 +20,8 @@ class Trainer:
 
         # Train mode
         if mode == 'train':
-            self.train_iter = train_iter # 받아옴
-            self.valid_iter = valid_iter # 받아옴
+            self.train_iter = train_iter  # 받아옴
+            self.valid_iter = valid_iter  # 받아옴
         else:
             self.test_iter = test_iter
 
@@ -34,7 +34,7 @@ class Trainer:
             warm_steps=params.warm_steps
         )
 
-        self.criterion =MTA_Loss() # MTA_Loss 지정
+        self.criterion = MTA_Loss()  # MTA_Loss 지정
         self.criterion.to(self.params.device)
 
     def train(self):
@@ -44,8 +44,8 @@ class Trainer:
 
         for epoch in range(self.params.num_epoch):
             self.model.train()
-            epoch_loss = 0 
-            start_time = time.time()  
+            epoch_loss = 0
+            start_time = time.time()
 
             for batch in self.train_iter:
                 self.optimizer.zero_grad()
@@ -61,13 +61,13 @@ class Trainer:
                 shopping_label = batch.shopping
                 conversion_label = batch.label
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential,cate_sequential,brand_sequential,price_sequential,segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential, cate_sequential, brand_sequential, price_sequential, segment)
 
-                output = output.contiguous().view(-1, output.shape[-1]) 
-                target = target[:, 1:].contiguous().view(-1) 
-                loss = self.criterion(cms_output,cms_label,gender_output, gender_label, age_output, age_label,
-                pvalue_output, pvalue_label, shopping_output, shopping_label,conversion_output,conversion_label) # loss 계산
-                
+                output = conversion_output.contiguous().view(-1, conversion_output.shape[-1])
+                target = conversion_label[:, 1:].contiguous().view(-1)
+                loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
+                                    pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)  # loss 계산
+
                 loss.backward()
 
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip)
@@ -86,8 +86,9 @@ class Trainer:
                 best_valid_loss = valid_loss
                 torch.save(self.model.state_dict(), self.params.save_model)
 
-            print(f'Epoch: {epoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
+            print(f'Epoch: {epoch + 1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
             print(f'\tTrain Loss: {train_loss:.3f} | Val. Loss: {valid_loss:.3f}')
+
 
     def evaluate(self):
         self.model.eval()

@@ -4,6 +4,8 @@ from model.attention import MultiHeadAttention
 from model.positionwise import PositionWiseFeedForward
 from model.ops import create_positional_encoding, create_source_mask, create_position_vector
 
+import torch
+
 class EncoderLayer(nn.Module):
     def __init__(self,params):
         super(EncoderLayer,self).__init__()
@@ -26,24 +28,32 @@ class EncoderLayer(nn.Module):
         return output
 
 class Encoder(nn.Module):
-    def __init__(self,params):
-        super(Encoder,self).__init__()
-        self.cam_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx) #embedding 지정
+    def __init__(self, params):
+        super(Encoder, self).__init__()
+        self.cam_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
         self.cate_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
-        self.brand_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
         self.price_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
 
-        nn.init.normal_(self.cam_token_embedding,mean=0,std=params.hidden_dim**-0.5)
-        nn.init.normal_(self.cate_token_embedding,mean=0,std=params.hidden_dim**-0.5)
-        nn.init.normal_(self.brand_token_embedding,mean=0,std=params.hidden_dim**-0.5)
-        nn.init.normal_(self.price_token_embedding,mean=0,std=params.hidden_dim**-0.5)
-        self.embedding_scale = params.hidden_dim**0.5  # embedding_scale 생성 -> 규제항
+        # Embedding 가중치 초기화
+        self._init_weights(self.cam_token_embedding, params.hidden_dim)
+        self._init_weights(self.cate_token_embedding, params.hidden_dim)
+        self._init_weights(self.price_token_embedding, params.hidden_dim)
 
-        self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len+1,params.hidden_dim),freeze=True) #positional encoding 생성
+        self.embedding_scale = params.hidden_dim ** 0.5  # embedding_scale 생성 -> 규제항
+
+        self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len+1, params.hidden_dim), freeze=True) # positional encoding 생성
 
         self.encoder_layer = nn.ModuleList([EncoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
         self.layer_norm = nn.LayerNorm(params.hidden_dim, eps=1e-6)
+
+    def _init_weights(self, embedding, hidden_dim):
+        """
+        임베딩 가중치 초기화 함수
+        """
+        # 임베딩 가중치를 정규 분포로 초기화
+        with torch.no_grad():
+            embedding.weight.normal_(mean=0, std=hidden_dim ** -0.5)
     
     def forward(self,cam_sequential,cate_sequential,brand_sequential,price_sequential):
 
@@ -51,7 +61,7 @@ class Encoder(nn.Module):
         source_pos = create_position_vector(cam_sequential) #position 벡터 생성
 
         source = self.token_embedding(self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + \
-                                    self.brand_token_embedding(brand_sequential) + self.price_token_embedding(price_sequential))*self.embedding_scale # embedding 생성    
+                                    self.price_token_embedding(price_sequential))*self.embedding_scale # embedding 생성    
         source = self.dropout(source+self.pos_embedding(source_pos)) # source 생성 embedding  + position 
 
         for encoder_layer in self.encoder_layer:
