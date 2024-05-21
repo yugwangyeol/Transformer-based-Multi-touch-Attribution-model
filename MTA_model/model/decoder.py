@@ -37,7 +37,7 @@ class DecoderLayer(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, params):
         super(Decoder, self).__init__()
-        self.token_embedding = nn.Embedding(params.output_dim, params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
+        self.token_embedding = nn.Embedding(int(params.output_dim), params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
         nn.init.normal_(self.token_embedding.weight, mean=0, std=params.hidden_dim**-0.5)
         self.embedding_scale = params.hidden_dim ** 0.5 # embedding scale
         self.pos_embedding = nn.Embedding.from_pretrained(
@@ -46,13 +46,17 @@ class Decoder(nn.Module):
         self.decoder_layers = nn.ModuleList([DecoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
         self.layer_norm = nn.LayerNorm(params.hidden_dim, eps=1e-6)
+        self.pad_idx = params.pad_idx
+        self.device = params.device
 
     def forward(self, target, source, encoder_output):
         # target              = [batch size, target length]
         # source              = [batch size, source length]
         # encoder_output      = [batch size, source length, hidden dim]
         target_mask, dec_enc_mask = create_target_mask(source, target) # 함수 이동 -> 마스크 생성
-        target_pos = create_position_vector(target)  # [batch size, target length] # position vector 생성
+        target_pos = create_position_vector(target, self.pad_idx, self.device)  # [batch size, target length] # position vector 생성
+
+        target = target.long()
 
         target = self.token_embedding(target) * self.embedding_scale #
         target = self.dropout(target + self.pos_embedding(target_pos)) # target 생성
@@ -65,4 +69,5 @@ class Decoder(nn.Module):
         target = self.layer_norm(target)
         output = torch.matmul(target, self.token_embedding.weight.transpose(0, 1)) # weight 곱
         # output = [batch size, target length, output dim]
+        
         return output, attention_map
