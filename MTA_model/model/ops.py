@@ -30,8 +30,7 @@ def create_positional_encoding(max_len, hidden_dim):
 
 def create_source_mask(source):
     #인코더의 자체 주의를 위한 마스킹 텐서 생성
-
-    source_length = source.length
+    source_length = source.shape[1]
 
     source_mask = (source == pad_idx)# pad가 있으면 마스크 처리
 

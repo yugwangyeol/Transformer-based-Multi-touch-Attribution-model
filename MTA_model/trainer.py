@@ -18,10 +18,9 @@ class Trainer:
     def __init__(self, params, mode, train_iter=None, valid_iter=None, test_iter=None):
         self.params = params
 
-        # Train mode
         if mode == 'train':
-            self.train_iter = train_iter  # 받아옴
-            self.valid_iter = valid_iter  # 받아옴
+            self.train_iter = train_iter
+            self.valid_iter = valid_iter
         else:
             self.test_iter = test_iter
 
@@ -34,7 +33,7 @@ class Trainer:
             warm_steps=params.warm_steps
         )
 
-        self.criterion = MTA_Loss()  # MTA_Loss 지정
+        self.criterion = MTA_Loss()
         self.criterion.to(self.params.device)
 
     def train(self):
@@ -49,29 +48,29 @@ class Trainer:
 
             for batch in self.train_iter:
                 self.optimizer.zero_grad()
-                cam_sequential = batch.cam_sequential
-                cate_sequential = batch.cate_sequential
-                brand_sequential = batch.brand_sequential
-                price_sequential = batch.price_sequential
-                segment = batch.segment
-                cms_label = batch.cms
-                gender_label = batch.gender
-                age_label = batch.age
-                pvalue_label = batch.pvalue
-                shopping_label = batch.shopping
-                conversion_label = batch.label
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(cam_sequential, cate_sequential, brand_sequential, price_sequential, segment)
+                cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
+                cate_sequential = torch.stack([item['cate_sequential'] for item in batch])
+                brand_sequential = torch.stack([item['price_sequential'] for item in batch])
+                price_sequential = torch.stack([item['price_sequential'] for item in batch])
+                segment = torch.stack([item['segment'] for item in batch])
+                cms_label = torch.stack([item['cms'] for item in batch])
+                gender_label = torch.stack([item['gender'] for item in batch])
+                age_label = torch.stack([item['age'] for item in batch])
+                pvalue_label = torch.stack([item['pvalue'] for item in batch])
+                shopping_label = torch.stack([item['shopping'] for item in batch])
+                conversion_label = torch.stack([item['label'] for item in batch])
+
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(
+                    cam_sequential, cate_sequential, price_sequential, segment)
 
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1])
                 target = conversion_label[:, 1:].contiguous().view(-1)
                 loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
-                                    pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)  # loss 계산
+                                        pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
 
                 loss.backward()
-
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip)
-
                 self.optimizer.step()
 
                 epoch_loss += loss.item()
@@ -88,7 +87,6 @@ class Trainer:
 
             print(f'Epoch: {epoch + 1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
             print(f'\tTrain Loss: {train_loss:.3f} | Val. Loss: {valid_loss:.3f}')
-
 
     def evaluate(self):
         self.model.eval()
