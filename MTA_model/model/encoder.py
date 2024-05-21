@@ -22,6 +22,8 @@ class EncoderLayer(nn.Module):
         output = source + self.self_attention(normalized_source,normalized_source,normalized_source,source_mask)[0] # attention + residual 
 
         normalized_output = self.layer_norm(output)
+        #print(self.postion_wise_ffn(normalized_output).shape)
+        #print(output.shape)
         output = output + self.postion_wise_ffn(normalized_output)
         # output = [batch size, source length, hidden dim]
 

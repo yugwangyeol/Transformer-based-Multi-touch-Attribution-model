@@ -64,8 +64,8 @@ class Trainer:
                 cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(
                     cam_sequential, cate_sequential, price_sequential, segment)
 
-                output = conversion_output.contiguous().view(-1, conversion_output.shape[-1])
-                target = conversion_label[:, 1:].contiguous().view(-1)
+                output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
+                target = conversion_label.contiguous().view(-1)
                 loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
                                         pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
 

@@ -21,7 +21,7 @@ class PositionWiseFeedForward(nn.Module): # 마지막에 늘렸다가 줄이는 
 
         x = x.permute(0,2,1) # x = [batch size, hidden dim, sentence length] #구조 변경
         output = self.dropout(self.conv1(x))
-        output - self.conv2(output)
+        output = self.conv2(output)
 
         output = output.permute(0,2,1)
         return self.dropout(output)

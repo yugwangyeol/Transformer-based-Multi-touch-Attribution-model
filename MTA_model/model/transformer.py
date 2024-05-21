@@ -2,7 +2,7 @@ import torch.nn as nn
 
 from model.encoder import Encoder
 from model.decoder import Decoder
-from model.GRL import cms_classifier, gender_classifier, age_classifier, pvalue_classifier, shopping_classifier, conversion_classifier
+from model.GRL import cms_classifier, gender_classifier, age_classifier, pvalue_classifier, shopping_classifier, ConversionClassifier
 class Transformer(nn.Module):
     def __init__(self, params):
         super(Transformer, self).__init__()
@@ -13,7 +13,7 @@ class Transformer(nn.Module):
         self.age_classifier = age_classifier()
         self.pvalue_classifier = pvalue_classifier()
         self.shopping_classifier = shopping_classifier()
-        self.conversion_classifier = conversion_classifier()
+        self.conversion_classifier = ConversionClassifier()
     
     def forward(self,cam_sequential,cate_sequential,price_sequential,segment):
 
@@ -23,8 +23,9 @@ class Transformer(nn.Module):
         age_output = self.age_classifier(encoder_output)
         pvalue_output = self.pvalue_classifier(encoder_output)
         shopping_output = self.shopping_classifier(encoder_output)
+
         output, attn_map = self.decoder(segment,cam_sequential,encoder_output)
-        conversion_output = self.conversion_classifier(encoder_output+output)
+        conversion_output = self.conversion_classifier(output)
 
         return cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map
     

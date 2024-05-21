@@ -192,7 +192,7 @@ class Params:
             'cam_input_dim': cam_input_dim,
             'cate_input_dim': cate_input_dim,
             'price_input_dim': price_input_dim,
-            'output_dim': 50,
+            'output_dim': 512,
             'device': device,
             ''
             'pad_idx': 0
