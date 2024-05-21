@@ -20,7 +20,7 @@ from torchtext.data import Dataset
 
 class CustomDataset(Dataset):
     def __init__(self, data, max_sequence_length):
-        self.cam_sequential,self.cate_sequential,self.price_sequential, self.segment, self.label, self.cms, self.gender, self.age, self.pvalue, self.shopping = self.pad_embed(data, max_sequence_length)
+        self.cam_sequential, self.cate_sequential, self.price_sequential, self.segment, self.label, self.cms, self.gender, self.age, self.pvalue, self.shopping = self.pad_embed(data, max_sequence_length)
 
     def __len__(self):
         return len(self.label)
@@ -42,31 +42,23 @@ class CustomDataset(Dataset):
     def pad_sequences(self, sequences, max_length, padding_value=0):
         padded_sequences = []
         for seq in sequences:
-            # 시퀀스를 정수 또는 실수 리스트로 변환
-
             seq = list(map(float, seq.split()))
-
-            # 시퀀스 길이 가져오기
             length = len(seq)
-            seq = torch.tensor(seq)  # 리스트를 텐서로 변환
-            # max_length에 도달할 때까지 padding_value로 패딩 추가
+            seq = torch.tensor(seq)
             if length < max_length:
                 padding = torch.full((max_length - length,), padding_value)
                 padded_seq = torch.cat((seq, padding), dim=0)
             else:
-                padded_seq = seq[:max_length]  # max_length를 초과하는 경우 자르기
+                padded_seq = seq[:max_length]
             padded_sequences.append(padded_seq)
-        # 리스트를 텐서로 변환하여 반환
         return torch.stack(padded_sequences)
 
     def pad_embed(self, data, max_sequence_length):
-        # Padding
         cam_sequential_padded = self.pad_sequences(data['cam_sequential'].values, max_sequence_length)
         cate_sequential_padded = self.pad_sequences(data['cate_sequential'].values, max_sequence_length)
         price_sequential_padded = self.pad_sequences(data['price_sequential'].values, max_sequence_length)
         segment = self.pad_sequences(data['segment'].values, 5)
 
-        # segment, label, cms, gender, age, pvalue, shopping을 float 형태로 변환
         label = data['label'].astype(float).values
         cms = data['cms'].astype(float).values
         gender = data['gender'].astype(float).values
@@ -75,13 +67,13 @@ class CustomDataset(Dataset):
         shopping = data['shopping'].astype(float).values
 
         return cam_sequential_padded, cate_sequential_padded, \
-            price_sequential_padded, segment, torch.tensor(label), \
-            torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
+               price_sequential_padded, segment, torch.tensor(label), \
+               torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
 
 def load_dataset(mode):
-    data_dir = '../../Data' # directory 설정
-
-    if mode == 'train': # mode 설정
+    data_dir = '../../Data'
+    
+    if mode == 'train':
         cam_sequential_path = os.path.join(data_dir, 'campaign_id.csv')
         cate_sequential_path = os.path.join(data_dir, 'cate_id.csv')
         price_sequential_path = os.path.join(data_dir, 'price.csv')
@@ -91,24 +83,23 @@ def load_dataset(mode):
         cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
         price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
         segment_data = pd.read_csv(segment_path, encoding='utf-8')
-        segment_data.columns = ['user_id',"cms_group_id","gender","age_level","pvalue_level","shopping_level",'segment']
+        segment_data.columns = ['user_id', "cms_group_id", "gender", "age_level", "pvalue_level", "shopping_level", 'segment']
 
         data = cam_sequential_data
         data['cate_sequential'] = cate_sequential_data['seq_space_sep']
         data['price_sequential'] = price_sequential_data['seq_space_sep']
 
         data = pd.merge(data, segment_data, on='user_id')
-        data = data.drop(['user_id','num_user'], axis=1)
-        data.columns = ['cam_sequential','label','cate_sequential','price_sequential','cms',
-                        'gender','age','pvalue','shopping','segment']
+        data = data.drop(['user_id', 'num_user'], axis=1)
+        data.columns = ['cam_sequential', 'label', 'cate_sequential', 'price_sequential', 'cms',
+                        'gender', 'age', 'pvalue', 'shopping', 'segment']
 
-        # train, valid 데이터셋으로 나누기
         train_data, valid_data = train_test_split(data, test_size=0.2, random_state=42)
 
         print(f'Number of training examples: {len(train_data)}')
         print(f'Number of validation examples: {len(valid_data)}')
 
-        return CustomDataset(train_data,50), CustomDataset(valid_data,50)
+        return CustomDataset(train_data, 50), CustomDataset(valid_data, 50)
 
     else:
         test_sequential_path = os.path.join(data_dir, 'test_sequential.csv')
@@ -120,33 +111,19 @@ def load_dataset(mode):
 
         print(f'Number of testing examples: {len(test_data)}')
 
-        return CustomDataset(test_data)
+        return CustomDataset(test_data, 50)
 
-
-def make_iter(batch_size,mode,train_data,valid_data,test_data=None):
-    #Panda DataFrame을 Torchtext Dataset으로 변환하고 모델을 교육하고 테스트하는 데 사용할 반복기를 만듬
-    # load text and label field made by build_pickles.py
-    # build_message에서 만든 텍스트 및 레이블 필드를 로드
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # device 설정
-
+def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     if mode == 'train':
         print(f'Make Iterators for training ....')
-        train_iter, valid_iter = ttd.BucketIterator.splits(
-            (train_data, valid_data),
-            batch_size=batch_size,
-            device=device
-        )
-        return train_data, valid_data
+        train_iter = DataLoader(train_data, batch_size=batch_size, shuffle=True, collate_fn=lambda x: x)
+        valid_iter = DataLoader(valid_data, batch_size=batch_size, shuffle=False, collate_fn=lambda x: x)
+        return train_iter, valid_iter
     else:
-        test_data = load_dataset(test_data)
-        dummy = list()
         print(f'Make Iterators for testing...')
-        test_iter, _ = ttd.BucketIterator.splits(
-            (test_data, dummy),
-            batch_size=batch_size,
-            device=device
-        )
+        test_iter = DataLoader(test_data, batch_size=batch_size, shuffle=False, collate_fn=lambda x: x)
         return test_iter
 
 def epoch_time(start_time,end_tiem): # epoch 시간 재는 함수

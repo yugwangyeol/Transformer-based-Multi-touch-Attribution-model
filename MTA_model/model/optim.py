@@ -17,8 +17,8 @@ class ScheduledAdam():
         
         self.optimizer.step()
     
-    def zero_grade(self):
-        self.optimizer.zero_grade()
+    def zero_grad(self): #모든 모델 파라미터의 기울기를 0으로 만듬
+        self.optimizer.zero_grad()
 
     def get_scale(self):
         return np.min([

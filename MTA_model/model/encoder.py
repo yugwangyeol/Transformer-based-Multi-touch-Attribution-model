@@ -55,7 +55,7 @@ class Encoder(nn.Module):
         with torch.no_grad():
             embedding.weight.normal_(mean=0, std=hidden_dim ** -0.5)
     
-    def forward(self,cam_sequential,cate_sequential,brand_sequential,price_sequential):
+    def forward(self,cam_sequential,cate_sequential,price_sequential):
 
         source_mask = create_source_mask(cam_sequential) # pad 마스크 처리
         source_pos = create_position_vector(cam_sequential) #position 벡터 생성
