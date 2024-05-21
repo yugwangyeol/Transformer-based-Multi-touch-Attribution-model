@@ -67,8 +67,8 @@ class CustomDataset(Dataset):
         shopping = data['shopping'].astype(float).values
 
         return cam_sequential_padded, cate_sequential_padded, \
-               price_sequential_padded, segment, torch.tensor(label), \
-               torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
+            price_sequential_padded, segment, torch.tensor(label), \
+            torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
 
 def load_dataset(mode):
     data_dir = '../../Data'
@@ -174,7 +174,7 @@ class Params:
 
     def __init__(self, json_path):
         self.update(json_path)
-        self.load_vocab()
+        #self.load_vocab()
 
     def update(self, json_path):
         """Loads parameters from json file"""
@@ -182,13 +182,21 @@ class Params:
             params = json.load(f)
             self.__dict__.update(params)
 
-    def load_vocab(self):
+    def load_vocab(self, cam_input_dim, cate_input_dim, price_input_dim):
 
         # add device information to the the params
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # add <sos> and <eos> tokens' indices used to predict the target sentence
-        params = {'input_dim': 50, 'output_dim': 50, 'device': device, 'pad_idx':0} #!!
+        params = {
+            'cam_input_dim': cam_input_dim,
+            'cate_input_dim': cate_input_dim,
+            'price_input_dim': price_input_dim,
+            'output_dim': 50,
+            'device': device,
+            ''
+            'pad_idx': 0
+        }
 
         self.__dict__.update(params)
 

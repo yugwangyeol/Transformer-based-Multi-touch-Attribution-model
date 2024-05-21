@@ -30,9 +30,9 @@ class EncoderLayer(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, params):
         super(Encoder, self).__init__()
-        self.cam_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
-        self.cate_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
-        self.price_token_embedding = nn.Embedding(params.input_dim, params.hidden_dim, padding_idx=params.pad_idx)
+        self.cam_token_embedding = nn.Embedding(int(params.cam_input_dim), params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
+        self.cate_token_embedding = nn.Embedding(int(params.cate_input_dim), params.hidden_dim, padding_idx=params.pad_idx)
+        self.price_token_embedding = nn.Embedding(int(params.price_input_dim), params.hidden_dim, padding_idx=params.pad_idx)
 
         # Embedding 가중치 초기화
         self._init_weights(self.cam_token_embedding, params.hidden_dim)
@@ -41,11 +41,13 @@ class Encoder(nn.Module):
 
         self.embedding_scale = params.hidden_dim ** 0.5  # embedding_scale 생성 -> 규제항
 
-        self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len+1, params.hidden_dim), freeze=True) # positional encoding 생성
+        self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len + 1, params.hidden_dim), freeze=True) # positional encoding 생성
 
         self.encoder_layer = nn.ModuleList([EncoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
         self.layer_norm = nn.LayerNorm(params.hidden_dim, eps=1e-6)
+        self.pad_idx = params.pad_idx
+        self.device = params.device
 
     def _init_weights(self, embedding, hidden_dim):
         """
@@ -54,17 +56,21 @@ class Encoder(nn.Module):
         # 임베딩 가중치를 정규 분포로 초기화
         with torch.no_grad():
             embedding.weight.normal_(mean=0, std=hidden_dim ** -0.5)
-    
-    def forward(self,cam_sequential,cate_sequential,price_sequential):
 
-        source_mask = create_source_mask(cam_sequential) # pad 마스크 처리
-        source_pos = create_position_vector(cam_sequential) #position 벡터 생성
+    def forward(self, cam_sequential, cate_sequential, price_sequential):
+        # 입력 텐서를 LongTensor로 변환
+        cam_sequential = cam_sequential.long()
+        cate_sequential = cate_sequential.long()
+        price_sequential = price_sequential.long()
 
-        source = self.token_embedding(self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + \
-                                    self.price_token_embedding(price_sequential))*self.embedding_scale # embedding 생성    
-        source = self.dropout(source+self.pos_embedding(source_pos)) # source 생성 embedding  + position 
+        source_mask = create_source_mask(cam_sequential, self.pad_idx)  # pad 마스크 처리
+        source_pos = create_position_vector(cam_sequential, self.pad_idx, self.device)  # position 벡터 생성
+
+        source = (self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + 
+                  self.price_token_embedding(price_sequential)) * self.embedding_scale  # embedding 생성    
+        source = self.dropout(source + self.pos_embedding(source_pos))  # source 생성 embedding  + position 
 
         for encoder_layer in self.encoder_layer:
-            source = encoder_layer(source,source_mask) # later 만큼 진행
+            source = encoder_layer(source, source_mask)  # layer 만큼 진행
         
         return self.layer_norm(source)
