@@ -51,7 +51,6 @@ class Trainer:
 
                 cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
                 cate_sequential = torch.stack([item['cate_sequential'] for item in batch])
-                brand_sequential = torch.stack([item['price_sequential'] for item in batch])
                 price_sequential = torch.stack([item['price_sequential'] for item in batch])
                 segment = torch.stack([item['segment'] for item in batch])
                 cms_label = torch.stack([item['cms'] for item in batch])
