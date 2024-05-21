@@ -17,7 +17,7 @@ def main(config):
         price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
         #print(cam_input_dim, cate_input_dim, price_input_dim)
         # params에 최대 인덱스 값을 로드
-        params.load_vocab(cam_input_dim, cate_input_dim, price_input_dim)
+        params.load_vocab(cam_input_dim+1, cate_input_dim+1, price_input_dim+1)
 
         # train_iter, valid_iter 생성
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
