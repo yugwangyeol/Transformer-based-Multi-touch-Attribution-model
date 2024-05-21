@@ -28,24 +28,22 @@ def create_positional_encoding(max_len, hidden_dim):
 
     return sinusoid_table
 
-def create_source_mask(source):
-    #인코더의 자체 주의를 위한 마스킹 텐서 생성
-    source_length = source.shape[1]
-
-    source_mask = (source == pad_idx)# pad가 있으면 마스크 처리
-
-    source_mask = source_mask.unsqueeze(1).repeat(1,source_length,1)
+def create_source_mask(source, pad_idx):
+    # 인코더의 자체 주의를 위한 마스킹 텐서 생성
+    source_mask = (source == pad_idx)  # pad가 있으면 마스크 처리
+    source_mask = source_mask.unsqueeze(1).unsqueeze(2)
     return source_mask
 
-def create_position_vector(sentencce):
-    #위치 정보를 포함하는 위치 벡터 생성
-    #패드 인덱스에 0번째 위치가 사용
 
-    batch_size = sentencce.size()
-    pos_vec = np.array([(pos+1) if word != pad_idx else 0 for row in range(batch_size) for pos,word in enumerate (sentencce[row])])  # pad를 0으로 나머지 1씩 미룸
-    pos_vec - pos_vec.reshape(batch_size,-1)
+def create_position_vector(sentence, pad_idx, device):
+    # 위치 정보를 포함하는 위치 벡터 생성
+    # 패드 인덱스에 0번째 위치가 사용
+    batch_size, seq_len = sentence.shape
+    pos_vec = np.array([(pos + 1) if word != pad_idx else 0 for row in sentence for pos, word in enumerate(row)])  # pad를 0으로 나머지 1씩 미룸
+    pos_vec = pos_vec.reshape(batch_size, seq_len)
     pos_vec = torch.LongTensor(pos_vec).to(device)
     return pos_vec
+
 
 def create_subsequent_mask(target):
     
