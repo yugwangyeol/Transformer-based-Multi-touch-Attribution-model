@@ -10,6 +10,19 @@ from model.optim import ScheduledAdam
 from model.transformer import Transformer
 from model.loss import MTA_Loss
 from tqdm import tqdm
+from utils import Params
+
+
+import wandb
+
+# Wandb ##!
+run = wandb.init(project="2024_capstoen")
+params = Params('config/params.json')
+
+wandb.config = {
+    'num_epoch' : params.num_epoch,
+    "batch_size": params.batch_size,
+}
 
 random.seed(32)
 torch.manual_seed(32) 
@@ -42,7 +55,7 @@ class Trainer:
         print(f'The model has {self.model.count_params():,} trainable parameters')
         best_valid_loss = float('inf')
 
-        for epoch in range(self.params.num_epoch):
+        for epoch in tqdm(range(self.params.num_epoch)):
             self.model.train()
             epoch_loss = 0
             start_time = time.time()
@@ -80,6 +93,8 @@ class Trainer:
 
             end_time = time.time()
             epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+            wandb.log({"train_loss": train_loss}, step=epoch)
+            wandb.log({"valid_loss": valid_loss}, step=epoch)
 
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
