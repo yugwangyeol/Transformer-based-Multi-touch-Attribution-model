@@ -11,12 +11,10 @@ import matplotlib.ticker as ticker
 import matplotlib.font_manager as fm
 
 from torchtext import data as ttd
-from torchtext.data import Example, Dataset
 
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
-from torchtext.data import Dataset
 
 class CustomDataset(Dataset):
     def __init__(self, data, max_sequence_length):

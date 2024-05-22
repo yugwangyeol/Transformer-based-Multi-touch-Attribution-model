@@ -1,0 +1,33 @@
+2024-05-22 11:49:51,897 INFO    StreamThr :29056 [internal.py:wandb_internal():88] W&B internal server running at pid: 29056, started at: 2024-05-22 11:49:51.897848
+2024-05-22 11:49:51,899 DEBUG   HandlerThread:29056 [handler.py:handle_request():139] handle_request: status
+2024-05-22 11:49:52,247 DEBUG   SenderThread:29056 [sender.py:send_request():317] send_request: status
+2024-05-22 11:49:52,248 DEBUG   SenderThread:29056 [sender.py:send():303] send: header
+2024-05-22 11:49:52,249 DEBUG   SenderThread:29056 [sender.py:send():303] send: run
+2024-05-22 11:49:52,249 INFO    WriterThread:29056 [datastore.py:open_for_write():75] open: C:\Users\pc\Desktop\KMU\4ÇÐ³â\Ä¸½ºÅæ\2024_Capstone\MTA_model\wandb\run-20240522_114951-10prl8sm\run-10prl8sm.wandb
+2024-05-22 11:49:52,889 DEBUG   HandlerThread:29056 [handler.py:handle_request():139] handle_request: check_version
+2024-05-22 11:49:52,893 INFO    SenderThread:29056 [dir_watcher.py:__init__():216] watching files in: C:\Users\pc\Desktop\KMU\4ÇÐ³â\Ä¸½ºÅæ\2024_Capstone\MTA_model\wandb\run-20240522_114951-10prl8sm\files
+2024-05-22 11:49:52,893 INFO    SenderThread:29056 [sender.py:_start_run_threads():928] run started: 10prl8sm with start time 1716346191.896848
+2024-05-22 11:49:52,893 DEBUG   SenderThread:29056 [sender.py:send():303] send: summary
+2024-05-22 11:49:52,894 INFO    SenderThread:29056 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2024-05-22 11:49:52,894 DEBUG   SenderThread:29056 [sender.py:send_request():317] send_request: check_version
+2024-05-22 11:49:52,973 DEBUG   HandlerThread:29056 [handler.py:handle_request():139] handle_request: run_start
+2024-05-22 11:49:53,003 DEBUG   HandlerThread:29056 [system_info.py:__init__():31] System info init
+2024-05-22 11:49:53,003 DEBUG   HandlerThread:29056 [system_info.py:__init__():46] System info init done
+2024-05-22 11:49:53,003 INFO    HandlerThread:29056 [system_monitor.py:start():150] Starting system monitor
+2024-05-22 11:49:53,003 INFO    SystemMonitor:29056 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2024-05-22 11:49:53,004 INFO    HandlerThread:29056 [system_monitor.py:probe():168] Collecting system info
+2024-05-22 11:49:53,010 INFO    SystemMonitor:29056 [interfaces.py:start():168] Started cpu
+2024-05-22 11:49:53,010 INFO    SystemMonitor:29056 [interfaces.py:start():168] Started disk
+2024-05-22 11:49:53,011 INFO    SystemMonitor:29056 [interfaces.py:start():168] Started gpu
+2024-05-22 11:49:53,011 INFO    SystemMonitor:29056 [interfaces.py:start():168] Started memory
+2024-05-22 11:49:53,024 INFO    SystemMonitor:29056 [interfaces.py:start():168] Started network
+2024-05-22 11:49:53,040 DEBUG   HandlerThread:29056 [system_info.py:probe():195] Probing system
+2024-05-22 11:49:53,065 DEBUG   HandlerThread:29056 [system_info.py:_probe_git():180] Probing git
+2024-05-22 11:49:53,162 DEBUG   HandlerThread:29056 [system_info.py:_probe_git():188] Probing git done
+2024-05-22 11:49:53,162 DEBUG   HandlerThread:29056 [system_info.py:probe():241] Probing system done
+2024-05-22 11:49:53,163 DEBUG   HandlerThread:29056 [system_monitor.py:probe():177] {'os': 'Windows-10-10.0.22631-SP0', 'python': '3.9.13', 'heartbeatAt': '2024-05-22T02:49:53.040379', 'startedAt': '2024-05-22T02:49:51.885738', 'docker': None, 'cuda': None, 'args': (), 'state': 'running', 'program': 'C:\\Users\\pc\\Desktop\\KMU\\4ÇÐ³â\\Ä¸½ºÅæ\\2024_Capstone\\MTA_model\\main.py', 'codePath': 'MTA_model\\main.py', 'git': {'remote': 'https://github.com/yugwangyeol/2024_Capstone.git', 'commit': 'd32131ede42b99d1a7fa78a133a3f3523a16b34b'}, 'email': 'rhkdduf627@naver.com', 'root': 'C:/Users/pc/Desktop/KMU/4ÇÐ³â/Ä¸½ºÅæ/2024_Capstone', 'host': 'DESKTOP-QR0ACQN', 'username': 'pc', 'executable': 'C:\\Users\\pc\\anaconda3\\python.exe', 'cpu_count': 10, 'cpu_count_logical': 20, 'cpu_freq': {'current': 2808.0, 'min': 0.0, 'max': 2808.0}, 'cpu_freq_per_core': [{'current': 2808.0, 'min': 0.0, 'max': 2808.0}], 'disk': {'total': 930.8169860839844, 'used': 829.025821685791}, 'gpu': 'NVIDIA GeForce RTX 3070', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA GeForce RTX 3070', 'memory_total': 8589934592}], 'memory': {'total': 63.9038200378418}}
+2024-05-22 11:49:53,163 INFO    HandlerThread:29056 [system_monitor.py:probe():178] Finished collecting system info
+2024-05-22 11:49:53,163 INFO    HandlerThread:29056 [system_monitor.py:probe():181] Publishing system info
+2024-05-22 11:49:53,163 DEBUG   HandlerThread:29056 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2024-05-22 11:49:53,166 DEBUG   HandlerThread:29056 [system_info.py:_save_pip():67] Saving pip packages done
+2024-05-22 11:49:53,166 DEBUG   HandlerThread:29056 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
