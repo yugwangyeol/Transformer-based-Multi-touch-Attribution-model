@@ -100,13 +100,26 @@ def load_dataset(mode):
         return CustomDataset(train_data, 50), CustomDataset(valid_data, 50)
 
     else:
-        test_sequential_path = os.path.join(data_dir, 'test_sequential.csv')
-        test_segment_path = os.path.join(data_dir, 'segment.csv')
-        test_sequential_data = pd.read_csv(test_sequential_path, encoding='utf-8')
-        test_segment_data = pd.read_csv(test_segment_path, encoding='utf-8')
+        cam_sequential_path = os.path.join(data_dir, 'campaign_id_test_seq.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_id_test_seq.csv')
+        price_sequential_path = os.path.join(data_dir, 'price_test_seq.csv')
+        segment_path = os.path.join(data_dir, 'test_segment.csv')
 
-        test_data = pd.merge(test_sequential_data, test_segment_data, on='User_id')
+        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8')
+        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
+        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
+        segment_data = pd.read_csv(segment_path, encoding='utf-8').iloc[:,1:]
+        segment_data.columns = ['user_id', "cms_group_id", "gender", "age_level", "pvalue_level", "shopping_level", 'segment']
 
+        data = cam_sequential_data
+        data['cate_sequential'] = cate_sequential_data['seq_space_sep']
+        data['price_sequential'] = price_sequential_data['seq_space_sep']
+
+        test_data = pd.merge(data, segment_data, on='user_id')
+        test_data = test_data.drop(['user_id', 'num_user'], axis=1)
+        test_data.columns = ['cam_sequential', 'label', 'cate_sequential', 'price_sequential', 'cms',
+                        'gender', 'age', 'pvalue', 'shopping', 'segment']
+        
         print(f'Number of testing examples: {len(test_data)}')
 
         return CustomDataset(test_data, 50)

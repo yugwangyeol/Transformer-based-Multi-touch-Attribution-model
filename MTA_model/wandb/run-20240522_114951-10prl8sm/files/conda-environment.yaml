@@ -1,5 +1,0 @@
-name: xai5
-channels:
-  - defaults
-  - conda-forge
-prefix: C:\Users\pc\anaconda3\envs\xai5
