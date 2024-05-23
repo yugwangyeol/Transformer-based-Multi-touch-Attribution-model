@@ -18,5 +18,6 @@ class MTA_Loss(nn.Module):
         age_loss = self.CE(age_output, age_label)
         pvalue_loss = self.CE(pvalue_output, pvalue_label)
         shopping_loss = self.CE(shopping_output, shopping_label)
-        return conversion_loss + cms_loss + gender_loss + age_loss + pvalue_loss + shopping_loss
+        print(f'conversion_loss: {conversion_loss:.3f} | cms_loss: {cms_loss:.3f} | gender_loss: {gender_loss:.3f} | age_loss: {age_loss:.3f} | pvalue_loss: {pvalue_loss:.3f} | shopping_loss: {shopping_loss:.3f}')
+        return (conversion_loss + cms_loss + gender_loss + age_loss + pvalue_loss + shopping_loss)/6, conversion_loss
 

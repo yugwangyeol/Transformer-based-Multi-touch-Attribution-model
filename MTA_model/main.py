@@ -31,13 +31,15 @@ def main(config):
         # test 데이터셋 로드
         test_data = load_dataset(config.mode)
         
+        train_data, valid_data = load_dataset('train')
+        
         # cam_sequential, cate_sequential, price_sequential의 최대 인덱스 값 추출
-        cam_input_dim = test_data.cam_sequential.max()
-        cate_input_dim = test_data.cate_sequential.max()
-        price_input_dim = test_data.price_sequential.max()
-
+        cam_input_dim = max(train_data.cam_sequential.max().item(), valid_data.cam_sequential.max().item())
+        cate_input_dim = max(train_data.cate_sequential.max().item(), valid_data.cate_sequential.max().item())
+        price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
+        #print(cam_input_dim, cate_input_dim, price_input_dim)
         # params에 최대 인덱스 값을 로드
-        params.load_vocab(cam_input_dim, cate_input_dim, price_input_dim)
+        params.load_vocab(cam_input_dim+1, cate_input_dim+1, price_input_dim+1)
 
         # test_iter 생성
         test_iter = make_iter(params.batch_size, config.mode, test_data=test_data)
