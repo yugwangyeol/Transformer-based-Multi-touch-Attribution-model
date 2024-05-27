@@ -1,23 +1,23 @@
 import csv
 import argparse
+import pickle
 from trainer import Trainer
 from utils import load_dataset, make_iter, Params
 
 def main(config):
     # 파라미터 파일 로드
     params = Params('config/params.json')
+    
+    # vocab.pkl 파일 로드
+    with open('../../Data/vocab.pkl', 'rb') as f:
+        vocab_info = pickle.load(f)
+    
+    # params에 최대 인덱스 값을 로드
+    params.load_vocab(vocab_info['cam_input_dim'], vocab_info['cate_input_dim'], vocab_info['price_input_dim'])
 
     if config.mode == 'train':
         # train 데이터셋과 valid 데이터셋 로드
         train_data, valid_data = load_dataset('train')
-        
-        # cam_sequential, cate_sequential, price_sequential의 최대 인덱스 값 추출
-        cam_input_dim = max(train_data.cam_sequential.max().item(), valid_data.cam_sequential.max().item())
-        cate_input_dim = max(train_data.cate_sequential.max().item(), valid_data.cate_sequential.max().item())
-        price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
-        #print(cam_input_dim, cate_input_dim, price_input_dim)
-        # params에 최대 인덱스 값을 로드
-        params.load_vocab(cam_input_dim+1, cate_input_dim+1, price_input_dim+1)
 
         # train_iter, valid_iter 생성
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
@@ -30,16 +30,6 @@ def main(config):
     else:
         # test 데이터셋 로드
         test_data = load_dataset(config.mode)
-        
-        train_data, valid_data = load_dataset('train')
-        
-        # cam_sequential, cate_sequential, price_sequential의 최대 인덱스 값 추출
-        cam_input_dim = max(train_data.cam_sequential.max().item(), valid_data.cam_sequential.max().item())
-        cate_input_dim = max(train_data.cate_sequential.max().item(), valid_data.cate_sequential.max().item())
-        price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
-        #print(cam_input_dim, cate_input_dim, price_input_dim)
-        # params에 최대 인덱스 값을 로드
-        params.load_vocab(cam_input_dim+1, cate_input_dim+1, price_input_dim+1)
 
         # test_iter 생성
         test_iter = make_iter(params.batch_size, config.mode, test_data=test_data)

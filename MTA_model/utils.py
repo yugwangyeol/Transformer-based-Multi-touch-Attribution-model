@@ -144,6 +144,18 @@ def epoch_time(start_time,end_tiem): # epoch 시간 재는 함수
 
     return elapsed_mins, elapsed_secs
 
+def load_and_prepare_vocab(train_data, valid_data=None):
+    if valid_data is None:
+        cam_input_dim = train_data.cam_sequential.max().item()
+        cate_input_dim = train_data.cate_sequential.max().item()
+        price_input_dim = train_data.price_sequential.max().item()
+    else:
+        cam_input_dim = max(train_data.cam_sequential.max().item(), valid_data.cam_sequential.max().item())
+        cate_input_dim = max(train_data.cate_sequential.max().item(), valid_data.cate_sequential.max().item())
+        price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
+    
+    return cam_input_dim + 1, cate_input_dim + 1, price_input_dim + 1
+
 def display_attention(condidate, translation, attention):
     """
     Args:
