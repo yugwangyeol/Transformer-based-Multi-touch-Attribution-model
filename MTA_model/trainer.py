@@ -177,6 +177,7 @@ class Trainer:
                 epoch_loss += loss.item()
                 epoch_conversion_loss += conversion_loss.item()
                 epoch_acc += accuracy_score(target, output)
+                #print(output.unique())
 
         test_loss = epoch_loss / len(self.test_iter)
         epoch_conversion_loss = epoch_conversion_loss / len(self.test_iter)
