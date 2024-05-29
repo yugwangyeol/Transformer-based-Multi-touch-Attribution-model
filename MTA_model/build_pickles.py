@@ -1,10 +1,11 @@
 # prepare_vocab.py
 import pickle
-from utils import load_dataset, load_and_prepare_vocab
+from utils import load_dataset, load_and_prepare_vocab,Params
 
 def main():
     # train 데이터셋과 valid 데이터셋 로드
-    train_data, valid_data = load_dataset('train')
+    params = Params('config/params.json')
+    train_data, valid_data = load_dataset('train',params.max_seq)
     
     # vocab 준비
     cam_input_dim, cate_input_dim, price_input_dim = load_and_prepare_vocab(train_data, valid_data)
@@ -22,3 +23,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print('build_vocab success')

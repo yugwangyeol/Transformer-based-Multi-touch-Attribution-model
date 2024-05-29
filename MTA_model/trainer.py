@@ -15,18 +15,19 @@ from utils import Params
 from sklearn.metrics import accuracy_score
 
 import wandb
+import numpy as np
 
 # Wandb ##!
 run = wandb.init(project="2024_capstoen")
 params = Params('config/params.json')
 
 wandb.config = {
-    'num_epoch' : params.num_epoch,
+    'num_epoch': params.num_epoch,
     "batch_size": params.batch_size,
 }
 
 random.seed(32)
-torch.manual_seed(32) 
+torch.manual_seed(32)
 torch.backends.cudnn.deterministic = True
 
 class Trainer:
@@ -43,7 +44,7 @@ class Trainer:
         self.model.to(self.params.device)
 
         self.optimizer = ScheduledAdam(
-            optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9),
+            optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-4),
             hidden_dim=params.hidden_dim,
             warm_steps=params.warm_steps
         )
@@ -51,8 +52,20 @@ class Trainer:
         self.criterion = MTA_Loss()
         self.criterion.to(self.params.device)
 
+    def to(self, device):
+        self.device = device
+        self.model.to(device)
+        self.criterion.to(device)
+
+    def _move_batch_to_device(self, batch):
+        if isinstance(batch, dict):
+            return {key: value.to(self.device) if isinstance(value, torch.Tensor) else value for key, value in batch.items()}
+        elif isinstance(batch, (list, tuple)):
+            return [self._move_batch_to_device(item) if isinstance(item, (dict, list, tuple)) else item.to(self.device) if isinstance(item, torch.Tensor) else item for item in batch]
+        else:
+            return batch.to(self.device)
+
     def train(self):
-        #print(self.model)
         print(f'The model has {self.model.count_params():,} trainable parameters')
         best_valid_loss = float('inf')
 
@@ -64,6 +77,7 @@ class Trainer:
 
             for batch in self.train_iter:
                 self.optimizer.zero_grad()
+                batch = self._move_batch_to_device(batch)
 
                 cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
                 cate_sequential = torch.stack([item['cate_sequential'] for item in batch])
@@ -93,7 +107,7 @@ class Trainer:
 
             train_loss = epoch_loss / len(self.train_iter)
             train_conversion_loss = conversion_epoch_loss / len(self.train_iter)
-            valid_loss,valid_acc,valid_conversion_loss = self.evaluate()
+            valid_loss, valid_acc, valid_conversion_loss = self.evaluate()
 
             end_time = time.time()
             epoch_mins, epoch_secs = epoch_time(start_time, end_time)
@@ -113,12 +127,14 @@ class Trainer:
 
     def evaluate(self):
         self.model.eval()
-        epoch_loss = 0 # 에폭 로스 0으로 설정
+        epoch_loss = 0
         epoch_conversion_loss = 0
         epoch_acc = 0
 
         with torch.no_grad():
             for batch in self.valid_iter: 
+                batch = self._move_batch_to_device(batch)
+
                 cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
                 cate_sequential = torch.stack([item['cate_sequential'] for item in batch])
                 price_sequential = torch.stack([item['price_sequential'] for item in batch])
@@ -135,26 +151,26 @@ class Trainer:
 
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
                 target = conversion_label.contiguous().view(-1)
-                loss,conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
+                loss, conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
                                         pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
-
                 epoch_loss += loss.item()
                 epoch_conversion_loss += conversion_loss.item()
-                epoch_acc += accuracy_score(target, output)
-
-
+                output = np.where(output.cpu() > 0.5, 1 , 0)
+                epoch_acc += accuracy_score(target.cpu(), output)
 
         return epoch_loss / len(self.valid_iter), epoch_acc / len(self.valid_iter), epoch_conversion_loss / len(self.valid_iter)
 
     def inference(self):
         self.model.load_state_dict(torch.load(self.params.save_model))
         self.model.eval()
-        epoch_loss = 0 # 에폭 로스 0으로 설정
+        epoch_loss = 0
         epoch_conversion_loss = 0
         epoch_acc = 0
 
         with torch.no_grad():
             for batch in self.test_iter:
+                batch = self._move_batch_to_device(batch)
+
                 cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
                 cate_sequential = torch.stack([item['cate_sequential'] for item in batch])
                 price_sequential = torch.stack([item['price_sequential'] for item in batch])
@@ -171,15 +187,14 @@ class Trainer:
 
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
                 target = conversion_label.contiguous().view(-1)
-                loss,conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
+                loss, conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
                                         pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
 
                 epoch_loss += loss.item()
                 epoch_conversion_loss += conversion_loss.item()
-                epoch_acc += accuracy_score(target, output)
-                #print(output.unique())
+                epoch_acc += accuracy_score(target.cpu(), output.cpu().argmax(dim=1))
 
         test_loss = epoch_loss / len(self.test_iter)
         epoch_conversion_loss = epoch_conversion_loss / len(self.test_iter)
         epoch_acc = epoch_acc / len(self.test_iter)
-        print(f'Test Loss: {test_loss:.3f} | Test Conversion Loss: {epoch_acc:.3f}| Test ACC: {epoch_acc:.3f}')
+        print(f'Test Loss: {test_loss:.3f} | Test Conversion Loss: {epoch_conversion_loss:.3f} | Test ACC: {epoch_acc:.3f}')

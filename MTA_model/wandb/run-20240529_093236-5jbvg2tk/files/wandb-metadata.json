@@ -1,0 +1,50 @@
+{
+    "os": "Windows-10-10.0.22631-SP0",
+    "python": "3.9.13",
+    "heartbeatAt": "2024-05-29T00:32:37.526049",
+    "startedAt": "2024-05-29T00:32:36.492315",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\pc\\Desktop\\KMU\\4\ud559\ub144\\\ucea1\uc2a4\ud1a4\\2024_Capstone\\MTA_model\\main.py",
+    "codePath": "MTA_model\\main.py",
+    "git": {
+        "remote": "https://github.com/yugwangyeol/2024_Capstone.git",
+        "commit": "b9e1e7f1c709be57735aef2b8caf3555b8c7e7ae"
+    },
+    "email": "rhkdduf627@naver.com",
+    "root": "C:/Users/pc/Desktop/KMU/4\ud559\ub144/\ucea1\uc2a4\ud1a4/2024_Capstone",
+    "host": "DESKTOP-QR0ACQN",
+    "username": "pc",
+    "executable": "C:\\Users\\pc\\anaconda3\\python.exe",
+    "cpu_count": 10,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2808.0,
+        "min": 0.0,
+        "max": 2808.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2808.0,
+            "min": 0.0,
+            "max": 2808.0
+        }
+    ],
+    "disk": {
+        "total": 930.8169860839844,
+        "used": 819.3835220336914
+    },
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3070",
+            "memory_total": 8589934592
+        }
+    ],
+    "memory": {
+        "total": 63.9038200378418
+    }
+}

@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\main.py", line 45, in <module>
+    main(args) # main 함수 실행
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\main.py", line 12, in main
+    with open('../../Data/vocab.pkl', 'rb') as f:
+FileNotFoundError: [Errno 2] No such file or directory: '../../Data/vocab.pkl'

@@ -12,7 +12,7 @@ class GradReverse(torch.autograd.Function):
 class cms_classifier(nn.Module):
     def __init__(self):
         super(cms_classifier, self).__init__()
-        self.fc0 = nn.Linear(25600, 2560) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(12800, 2560) # representation 크기 따라 변경
         self.fc1 = nn.Linear(2560, 256) 
         self.fc2 = nn.Linear(256, 100)
         self.fc3 = nn.Linear(100, 13)
@@ -29,7 +29,7 @@ class cms_classifier(nn.Module):
 class gender_classifier(nn.Module):
     def __init__(self):
         super(gender_classifier, self).__init__()
-        self.fc0 = nn.Linear(25600, 2560) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(12800, 2560) # representation 크기 따라 변경
         self.fc1 = nn.Linear(2560, 256) 
         self.fc2 = nn.Linear(256, 100)
         self.fc3 = nn.Linear(100, 1)
@@ -47,7 +47,7 @@ class gender_classifier(nn.Module):
 class age_classifier(nn.Module):
     def __init__(self):
         super(age_classifier, self).__init__()
-        self.fc0 = nn.Linear(25600, 2560) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(12800, 2560) # representation 크기 따라 변경
         self.fc1 = nn.Linear(2560, 256) 
         self.fc2 = nn.Linear(256, 100)
         self.fc3 = nn.Linear(100, 7)
@@ -64,7 +64,7 @@ class age_classifier(nn.Module):
 class pvalue_classifier(nn.Module):
     def __init__(self):
         super(pvalue_classifier, self).__init__()
-        self.fc0 = nn.Linear(25600, 2560) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(12800, 2560) # representation 크기 따라 변경
         self.fc1 = nn.Linear(2560, 256) 
         self.fc2 = nn.Linear(256, 100)
         self.fc3 = nn.Linear(100, 4)
@@ -81,7 +81,7 @@ class pvalue_classifier(nn.Module):
 class shopping_classifier(nn.Module):
     def __init__(self):
         super(shopping_classifier, self).__init__()
-        self.fc0 = nn.Linear(25600, 2560) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(12800, 2560) # representation 크기 따라 변경
         self.fc1 = nn.Linear(2560, 256) 
         self.fc2 = nn.Linear(256, 100)
         self.fc3 = nn.Linear(100, 3)

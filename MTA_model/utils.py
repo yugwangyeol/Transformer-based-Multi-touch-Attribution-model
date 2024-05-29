@@ -68,19 +68,19 @@ class CustomDataset(Dataset):
             price_sequential_padded, segment, torch.tensor(label), \
             torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
 
-def load_dataset(mode):
+def load_dataset(mode,max_seq):
     data_dir = '../../Data'
     
     if mode == 'train':
         cam_sequential_path = os.path.join(data_dir, 'campaign_id.csv')
         cate_sequential_path = os.path.join(data_dir, 'cate_id.csv')
         price_sequential_path = os.path.join(data_dir, 'price.csv')
-        segment_path = os.path.join(data_dir, 'sampled_user_segment.csv')
+        segment_path = os.path.join(data_dir, 'train_seg.csv')
 
-        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8')
-        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
-        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
-        segment_data = pd.read_csv(segment_path, encoding='utf-8')
+        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8').iloc[:,1:]
+        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8').iloc[:,1:]
+        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8').iloc[:,1:]
+        segment_data = pd.read_csv(segment_path, encoding='utf-8').iloc[:,1:]
         segment_data.columns = ['user_id', "cms_group_id", "gender", "age_level", "pvalue_level", "shopping_level", 'segment']
 
         data = cam_sequential_data
@@ -97,17 +97,17 @@ def load_dataset(mode):
         print(f'Number of training examples: {len(train_data)}')
         print(f'Number of validation examples: {len(valid_data)}')
 
-        return CustomDataset(train_data, 50), CustomDataset(valid_data, 50)
+        return CustomDataset(train_data, max_seq), CustomDataset(valid_data, max_seq)
 
     else:
-        cam_sequential_path = os.path.join(data_dir, 'campaign_id_test_seq.csv')
-        cate_sequential_path = os.path.join(data_dir, 'cate_id_test_seq.csv')
-        price_sequential_path = os.path.join(data_dir, 'price_test_seq.csv')
+        cam_sequential_path = os.path.join(data_dir, 'campaign_t.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_t.csv')
+        price_sequential_path = os.path.join(data_dir, 'price_test.csv')
         segment_path = os.path.join(data_dir, 'test_segment.csv')
 
-        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8')
-        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8')
-        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8')
+        cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8').iloc[:,1:]
+        cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8').iloc[:,1:]
+        price_sequential_data = pd.read_csv(price_sequential_path, encoding='utf-8').iloc[:,1:]
         segment_data = pd.read_csv(segment_path, encoding='utf-8').iloc[:,1:]
         segment_data.columns = ['user_id', "cms_group_id", "gender", "age_level", "pvalue_level", "shopping_level", 'segment']
 
@@ -122,7 +122,7 @@ def load_dataset(mode):
         
         print(f'Number of testing examples: {len(test_data)}')
 
-        return CustomDataset(test_data, 50)
+        return CustomDataset(test_data, max_seq)
 
 def make_iter(batch_size, mode, train_data=None, valid_data=None, test_data=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -144,6 +144,8 @@ def epoch_time(start_time,end_tiem): # epoch 시간 재는 함수
 
     return elapsed_mins, elapsed_secs
 
+# utils.py
+
 def load_and_prepare_vocab(train_data, valid_data=None):
     if valid_data is None:
         cam_input_dim = train_data.cam_sequential.max().item()
@@ -155,6 +157,7 @@ def load_and_prepare_vocab(train_data, valid_data=None):
         price_input_dim = max(train_data.price_sequential.max().item(), valid_data.price_sequential.max().item())
     
     return cam_input_dim + 1, cate_input_dim + 1, price_input_dim + 1
+
 
 def display_attention(condidate, translation, attention):
     """
