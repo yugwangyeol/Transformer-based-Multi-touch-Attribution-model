@@ -9,7 +9,7 @@
     "clip": 1,
 
     "batch_size": 128,
-    "num_epoch": 50,
+    "num_epoch": 10,
     "warm_steps": 4000,
 
     "hidden_dim": 512,
@@ -17,5 +17,7 @@
     "n_layer": 4,
     "n_head": 8,
     "max_len": 64,
-    "dropout": 0.1
+    "dropout": 0.1,
+
+    "max_seq": 25
 }

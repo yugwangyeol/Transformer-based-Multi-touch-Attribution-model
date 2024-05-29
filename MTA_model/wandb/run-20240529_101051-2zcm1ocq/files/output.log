@@ -1,0 +1,31 @@
+Number of training examples: 16563
+Number of validation examples: 4141
+Make Iterators for training ....
+  0%|                                                                                                                                                | 0/10 [00:00<?, ?it/s]
+
+ 10%|█████████████▎                                                                                                                       | 1/10 [12:00<1:48:04, 720.53s/it]
+Epoch: 01 | Epoch Time: 11m 58s
+	Train Loss: 75.683 | Train Conversion Loss : 0.694
+	 Val. Loss: 2.007 |  Val. Conversion Loss : 0.693 | Val. ACC : 0.588
+Epoch: 02 | Epoch Time: 10m 36s
+	Train Loss: 1.721 | Train Conversion Loss : 0.693
+
+ 20%|██████████████████████████▌                                                                                                          | 2/10 [22:39<1:29:38, 672.29s/it]
+Epoch: 03 | Epoch Time: 11m 18s
+	Train Loss: 2.251 | Train Conversion Loss : 0.693
+
+ 30%|███████████████████████████████████████▉                                                                                             | 3/10 [45:12<1:45:28, 904.05s/it]
+Traceback (most recent call last):
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\main.py", line 51, in <module>
+    main(args)  # main 함수 실행
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\main.py", line 33, in main
+    trainer.train()
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\trainer.py", line 109, in train
+    valid_loss, valid_acc, valid_conversion_loss = self.evaluate()
+  File "C:\Users\pc\Desktop\KMU\4학년\캡스톤\2024_Capstone\MTA_model\trainer.py", line 157, in evaluate
+    epoch_acc += accuracy_score(target.cpu(), output.cpu())
+  File "C:\Users\pc\anaconda3\lib\site-packages\sklearn\metrics\_classification.py", line 211, in accuracy_score
+    y_type, y_true, y_pred = _check_targets(y_true, y_pred)
+  File "C:\Users\pc\anaconda3\lib\site-packages\sklearn\metrics\_classification.py", line 93, in _check_targets
+    raise ValueError(
+ValueError: Classification metrics can't handle a mix of binary and continuous targets
