@@ -109,6 +109,6 @@ class ConversionClassifier(nn.Module):
         x = F.leaky_relu(self.fc1(x))
         x = self.fc2(x)
         x = x.view(-1, 1) # [batch_size, 1] (예: [128, 1])
-        return torch.sigmoid(x)
+        return x
 
 # https://jimmy-ai.tistory.com/365
