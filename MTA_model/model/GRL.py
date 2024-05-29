@@ -42,7 +42,7 @@ class gender_classifier(nn.Module):
         x = F.leaky_relu(self.fc2(x))
         x = self.fc3(x)
         x = x.view(-1, 1) # [batch_size, 1] (예: [128, 1])
-        return torch.sigmoid(x)
+        return x
 
 class age_classifier(nn.Module):
     def __init__(self):
