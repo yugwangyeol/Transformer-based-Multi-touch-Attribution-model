@@ -15,6 +15,7 @@ from torchtext import data as ttd
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 class CustomDataset(Dataset):
     def __init__(self, data, max_sequence_length):

@@ -44,7 +44,7 @@ class Trainer:
         self.model.to(self.params.device)
 
         self.optimizer = ScheduledAdam(
-            optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-4),
+            optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9),
             hidden_dim=params.hidden_dim,
             warm_steps=params.warm_steps
         )
