@@ -159,7 +159,7 @@ def load_and_prepare_vocab(train_data, valid_data=None):
     return cam_input_dim + 1, cate_input_dim + 1, price_input_dim + 1
 
 
-def display_attention(condidate, translation, attention):
+def display_attention(source, target, attention, data_path, idx):
     """
     Args:
         condidate: (목록) 토큰화된 소스 토큰
@@ -169,23 +169,33 @@ def display_attention(condidate, translation, attention):
     # attention = [target length, source length]
 
     attention = attention.cpu().detach().numpy()
+    source = source.tolist()[0]
+    print(len(target))
+    
+    vis_source = source[:idx]
+    vis_attn = attention[:, :idx]
 
-    font_location = 'pickles/NanumSquareR.ttf'
-    fontprop = fm.FontProperties(font_location)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    cax = ax.matshow(vis_attn, cmap='Reds')
+    fig.colorbar(cax)
 
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111)
+    ax.set_xticks(np.arange(len(vis_source)))  # x축 레이블 위치 고정
+    ax.set_yticks(np.arange(len(target)))  # y축 레이블 위치 고정
 
-    ax.matshow(attention, cmap='bone')
-    ax.tick_params(labelsize=15)
-    ax.set_xticklabels([''] + [t.lower() for t in candidate], rotation=45, fontproperties=fontprop)
-    ax.set_yticklabels([''] + translation, fontproperties=fontprop)
+    ax.set_xticklabels(vis_source, minor=False)
+    ax.set_yticklabels([i for i in target], minor=False)
 
     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
+    for i in range(len(target)):
+        for j in range(len(vis_source)):
+            ax.text(j, i, f'{vis_attn[i, j]:.2f}', ha='center', va='center', color='black')
+
+    plt.savefig(data_path + '/visualize_attn.png')
     plt.show()
     plt.close()
+
 
 class Params:
     """
