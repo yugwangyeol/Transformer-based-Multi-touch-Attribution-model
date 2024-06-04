@@ -3,10 +3,9 @@ import torch.nn as nn
 from model.encoder import Encoder
 from model.decoder import Decoder
 from model.GRL import cms_classifier, gender_classifier, age_classifier, pvalue_classifier, shopping_classifier, ConversionClassifier
-class Transformer(nn.Module):
+class Transformer_decoder(nn.Module):
     def __init__(self, params):
-        super(Transformer, self).__init__()
-        self.encoder = Encoder(params)
+        super(Transformer_decoder, self).__init__()
         self.decoder = Decoder(params)
         self.cms_classifier = cms_classifier()
         self.gender_classifier = gender_classifier()
@@ -15,9 +14,8 @@ class Transformer(nn.Module):
         self.shopping_classifier = shopping_classifier()
         self.conversion_classifier = ConversionClassifier()
     
-    def forward(self,cam_sequential,cate_sequential,price_sequential,segment):
+    def forward(self,cam_sequential,cate_sequential,price_sequential,segment,encoder_output):
 
-        encoder_output = self.encoder(cam_sequential,cate_sequential,price_sequential)
         cms_output = self.cms_classifier(encoder_output)
         gender_output = self.gender_classifier(encoder_output)
         age_output = self.age_classifier(encoder_output)
@@ -27,7 +25,7 @@ class Transformer(nn.Module):
         output, attn_map = self.decoder(segment,cam_sequential,encoder_output)
         conversion_output = self.conversion_classifier(output)
 
-        return cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map
+        return  cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map #
     
     def count_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

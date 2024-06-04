@@ -40,8 +40,7 @@ class Decoder(nn.Module):
         self.token_embedding = nn.Embedding(int(params.output_dim), params.hidden_dim, padding_idx=params.pad_idx) # embedding 설정
         nn.init.normal_(self.token_embedding.weight, mean=0, std=params.hidden_dim**-0.5)
         self.embedding_scale = params.hidden_dim ** 0.5 # embedding scale
-        self.pos_embedding = nn.Embedding.from_pretrained(
-            create_positional_encoding(params.max_len+1, params.hidden_dim), freeze=True) # 똑같음
+        #self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len+1, params.hidden_dim), freeze=True) # 똑같음
 
         self.decoder_layers = nn.ModuleList([DecoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
@@ -59,8 +58,9 @@ class Decoder(nn.Module):
         target = target.long()
 
         target = self.token_embedding(target) * self.embedding_scale #
-        target = self.dropout(target + self.pos_embedding(target_pos)) # target 생성
+        #target = self.dropout(target + self.pos_embedding(target_pos)) # target 생성
         # target = [batch size, target length, hidden dim]
+        target = self.dropout(target)
 
         for decoder_layer in self.decoder_layers:
             target, attention_map = decoder_layer(target, encoder_output, dec_enc_mask) ##!

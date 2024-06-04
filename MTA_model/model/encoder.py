@@ -43,7 +43,7 @@ class Encoder(nn.Module):
 
         self.embedding_scale = params.hidden_dim ** 0.5  # embedding_scale 생성 -> 규제항
 
-        self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len + 1, params.hidden_dim), freeze=True) # positional encoding 생성
+        #self.pos_embedding = nn.Embedding.from_pretrained(create_positional_encoding(params.max_len + 1, params.hidden_dim), freeze=True) # positional encoding 생성
 
         self.encoder_layer = nn.ModuleList([EncoderLayer(params) for _ in range(params.n_layer)])
         self.dropout = nn.Dropout(params.dropout)
@@ -66,11 +66,12 @@ class Encoder(nn.Module):
         price_sequential = price_sequential.long()
 
         source_mask = create_source_mask(cam_sequential, self.pad_idx)  # pad 마스크 처리
-        source_pos = create_position_vector(cam_sequential, self.pad_idx, self.device)  # position 벡터 생성
+        #source_pos = create_position_vector(cam_sequential, self.pad_idx, self.device)  # position 벡터 생성
 
         source = (self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + 
                   self.price_token_embedding(price_sequential)) * self.embedding_scale  # embedding 생성    
-        source = self.dropout(source + self.pos_embedding(source_pos))  # source 생성 embedding  + position 
+        #source = self.dropout(source + self.pos_embedding(source_pos))  # source 생성 embedding  + position 
+        source = self.dropout(source)
 
         for encoder_layer in self.encoder_layer:
             source = encoder_layer(source, source_mask)  # layer 만큼 진행
