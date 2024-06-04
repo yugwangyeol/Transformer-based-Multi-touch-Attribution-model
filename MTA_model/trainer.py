@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from utils import epoch_time
-from model.optim import ScheduledAdam
-from model.transformer import Transformer
+from model.transformer_decoder import Transformer_decoder
+from model.transformer_encoder import Transformer_encoder
 from model.loss import MTA_Loss
 from tqdm import tqdm
 from utils import Params
@@ -40,21 +40,21 @@ class Trainer:
         else:
             self.test_iter = test_iter
 
-        self.model = Transformer(self.params)
-        self.model.to(self.params.device)
+        self.encoder = Transformer_encoder(self.params)
+        self.decoder = Transformer_decoder(self.params)
+        self.encoder.to(self.params.device)
+        self.decoder.to(self.params.device)
 
-        self.optimizer = ScheduledAdam(
-            optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-9),
-            hidden_dim=params.hidden_dim,
-            warm_steps=params.warm_steps
-        )
-
+        self.optimizer = optim.Adam(list(self.encoder.parameters())+list(self.decoder.parameters()), lr=1e-4, betas=(0.9, 0.98), weight_decay=1e-4) # , betas=(0.9, 0.98), weight_decay=1e-4
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0=50, T_mult=2, eta_min=0)
+        
         self.criterion = MTA_Loss()
         self.criterion.to(self.params.device)
 
     def to(self, device):
         self.device = device
-        self.model.to(device)
+        self.encoder.to(device)
+        self.decoder.to(device)
         self.criterion.to(device)
 
     def _move_batch_to_device(self, batch):
@@ -66,16 +66,17 @@ class Trainer:
             return batch.to(self.device)
 
     def train(self):
-        print(f'The model has {self.model.count_params():,} trainable parameters')
+        print(f'The model has {self.encoder.count_params()+self.decoder.count_params():,} trainable parameters')
         best_valid_loss = float('inf')
 
-        for epoch in tqdm(range(self.params.num_epoch)):
-            self.model.train()
+        for epoch in range(self.params.num_epoch):
+            self.encoder.train()
+            self.decoder.train()
             epoch_loss = 0
             conversion_epoch_loss = 0
             start_time = time.time()
 
-            for batch in self.train_iter:
+            for batch in tqdm(self.train_iter):
                 self.optimizer.zero_grad()
                 batch = self._move_batch_to_device(batch)
 
@@ -90,17 +91,19 @@ class Trainer:
                 shopping_label = torch.stack([item['shopping'] for item in batch])
                 conversion_label = torch.stack([item['label'] for item in batch])
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(
-                    cam_sequential, cate_sequential, price_sequential, segment)
+                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential, segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.decoder(
+                    cam_sequential, cate_sequential, price_sequential, segment,encoder_output) #
 
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
                 target = conversion_label.contiguous().view(-1)
                 loss, conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
-                                        pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
+                                        pvalue_output, pvalue_label, shopping_output, shopping_label, output, target) # 
 
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip)
+                torch.nn.utils.clip_grad_norm_(list(self.encoder.parameters())+list(self.decoder.parameters()), self.params.clip)
                 self.optimizer.step()
+                self.scheduler.step()
 
                 epoch_loss += loss.item()
                 conversion_epoch_loss += conversion_loss.item()
@@ -119,14 +122,15 @@ class Trainer:
 
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
-                torch.save(self.model.state_dict(), self.params.save_model)
+                #torch.save(self.model.state_dict(), self.params.save_model)
 
             print(f'Epoch: {epoch + 1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
             print(f'\tTrain Loss: {train_loss:.3f} | Train Conversion Loss : {train_conversion_loss:.3f}')
             print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Conversion Loss : {valid_conversion_loss:.3f} | Val. ACC : {valid_acc:.3f}')
 
     def evaluate(self):
-        self.model.eval()
+        self.encoder.eval()
+        self.decoder.eval()
         epoch_loss = 0
         epoch_conversion_loss = 0
         epoch_acc = 0
@@ -146,9 +150,10 @@ class Trainer:
                 shopping_label = torch.stack([item['shopping'] for item in batch])
                 conversion_label = torch.stack([item['label'] for item in batch])
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(
-                    cam_sequential, cate_sequential, price_sequential, segment)
-
+                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential, segment)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.decoder(
+                    cam_sequential, cate_sequential, price_sequential, segment,encoder_output) #
+                    
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
                 target = conversion_label.contiguous().view(-1)
                 loss, conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,

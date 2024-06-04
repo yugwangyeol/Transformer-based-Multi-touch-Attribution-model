@@ -5,12 +5,17 @@ import torch
 from trainer import Trainer
 from utils import load_dataset, make_iter, Params
 
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["TORCH_USE_CUDA_DSA"] = '1'
+
 def main(config):
     # 파라미터 파일 로드
     params = Params('config/params.json')
     
     # vocab.pkl 파일 로드
-    with open('../../Data/vocab.pkl', 'rb') as f:
+    with open('../../Data2/vocab.pkl', 'rb') as f:
         vocab_info = pickle.load(f)
     
     # params에 최대 인덱스 값을 로드
@@ -21,7 +26,7 @@ def main(config):
     
     if config.mode == 'train':
         # train 데이터셋과 valid 데이터셋 로드
-        train_data, valid_data = load_dataset('train', params.max_seq)
+        train_data, valid_data = load_dataset('train', params.max_len)
 
         # train_iter, valid_iter 생성
         train_iter, valid_iter = make_iter(params.batch_size, config.mode,
@@ -34,7 +39,7 @@ def main(config):
 
     else:
         # test 데이터셋 로드
-        test_data = load_dataset(config.mode, params.max_seq)
+        test_data = load_dataset(config.mode, params.max_len)
 
         # test_iter 생성
         test_iter = make_iter(params.batch_size, config.mode, test_data=test_data)

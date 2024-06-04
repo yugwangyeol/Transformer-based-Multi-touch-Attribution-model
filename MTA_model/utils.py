@@ -15,7 +15,6 @@ from torchtext import data as ttd
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 class CustomDataset(Dataset):
     def __init__(self, data, max_sequence_length):
@@ -70,12 +69,12 @@ class CustomDataset(Dataset):
             torch.tensor(cms), torch.tensor(gender), torch.tensor(age), torch.tensor(pvalue), torch.tensor(shopping)
 
 def load_dataset(mode,max_seq):
-    data_dir = '../../Data'
+    data_dir = '../../Data2'
     
     if mode == 'train':
-        cam_sequential_path = os.path.join(data_dir, 'campaign_id.csv')
-        cate_sequential_path = os.path.join(data_dir, 'cate_id.csv')
-        price_sequential_path = os.path.join(data_dir, 'price.csv')
+        cam_sequential_path = os.path.join(data_dir, 'camp_train.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_train.csv')
+        price_sequential_path = os.path.join(data_dir, 'price_train.csv')
         segment_path = os.path.join(data_dir, 'train_seg.csv')
 
         cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8').iloc[:,1:]
@@ -101,10 +100,10 @@ def load_dataset(mode,max_seq):
         return CustomDataset(train_data, max_seq), CustomDataset(valid_data, max_seq)
 
     else:
-        cam_sequential_path = os.path.join(data_dir, 'campaign_t.csv')
-        cate_sequential_path = os.path.join(data_dir, 'cate_t.csv')
+        cam_sequential_path = os.path.join(data_dir, 'camp_test.csv')
+        cate_sequential_path = os.path.join(data_dir, 'cate_test.csv')
         price_sequential_path = os.path.join(data_dir, 'price_test.csv')
-        segment_path = os.path.join(data_dir, 'test_segment.csv')
+        segment_path = os.path.join(data_dir, 'test_seg.csv')
 
         cam_sequential_data = pd.read_csv(cam_sequential_path, encoding='utf-8').iloc[:,1:]
         cate_sequential_data = pd.read_csv(cate_sequential_path, encoding='utf-8').iloc[:,1:]
@@ -160,34 +159,31 @@ def load_and_prepare_vocab(train_data, valid_data=None):
     return cam_input_dim + 1, cate_input_dim + 1, price_input_dim + 1
 
 
-def display_attention(source, target, attention, data_path, idx):
-
+def display_attention(condidate, translation, attention):
+    """
+    Args:
+        condidate: (목록) 토큰화된 소스 토큰
+        translation: (목록) 예측된 대상 번역 토큰
+        attention: 주의 점수를 포함하는 텐서
+    """
+    # attention = [target length, source length]
 
     attention = attention.cpu().detach().numpy()
-    source = source.tolist()[0]
-    print(len(target))
-    
-    vis_source = source[:idx]
-    vis_attn = attention[:, :idx]
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    cax = ax.matshow(vis_attn, cmap='Reds')
-    fig.colorbar(cax)
+    font_location = 'pickles/NanumSquareR.ttf'
+    fontprop = fm.FontProperties(font_location)
 
-    ax.set_xticks(np.arange(len(vis_source)))  # x축 레이블 위치 고정
-    ax.set_yticks(np.arange(len(target)))  # y축 레이블 위치 고정
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111)
 
-    ax.set_xticklabels(vis_source, minor=False)
-    ax.set_yticklabels([i for i in target], minor=False)
+    ax.matshow(attention, cmap='bone')
+    ax.tick_params(labelsize=15)
+    ax.set_xticklabels([''] + [t.lower() for t in candidate], rotation=45, fontproperties=fontprop)
+    ax.set_yticklabels([''] + translation, fontproperties=fontprop)
 
     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-    for i in range(len(target)):
-        for j in range(len(vis_source)):
-            ax.text(j, i, f'{vis_attn[i, j]:.2f}', ha='center', va='center', color='black')
-
-    plt.savefig(data_path + '/visualize_attn.png')
     plt.show()
     plt.close()
 
