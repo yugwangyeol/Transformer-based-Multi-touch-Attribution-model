@@ -15,7 +15,7 @@ def main(config):
     params = Params('config/params.json')
     
     # vocab.pkl 파일 로드
-    with open('../../Data3/vocab.pkl', 'rb') as f:
+    with open('../../Data2/vocab.pkl', 'rb') as f:
         vocab_info = pickle.load(f)
     
     # params에 최대 인덱스 값을 로드

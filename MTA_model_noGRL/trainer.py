@@ -12,7 +12,7 @@ from model.loss import MTA_Loss
 from tqdm import tqdm
 from utils import Params
 
-from sklearn.metrics import accuracy_score,f1_score,roc_auc_score
+from sklearn.metrics import accuracy_score,f1_score,roc_auc_score,log_loss
 
 import wandb
 import numpy as np
@@ -79,6 +79,7 @@ class Trainer:
             epoch_f1 = 0
             conversion_epoch_loss = 0
             epoch_auc = 0
+            epoch_log = 0
 
             for batch in tqdm(self.train_iter):
                 self.optimizer.zero_grad()
@@ -109,12 +110,15 @@ class Trainer:
                 epoch_acc += accuracy_score(target.cpu(), output)
                 epoch_f1 += f1_score(target.cpu(), output)
                 epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
             train_loss = epoch_loss / len(self.train_iter)
             train_acc = epoch_acc / len(self.train_iter)
             train_f1 = epoch_f1 / len(self.train_iter)
             train_auc = epoch_auc / len(self.train_iter)
-            valid_loss, valid_acc, valid_f1, valid_auc = self.evaluate()
+            train_log = epoch_log / len(self.train_iter)
+
+            valid_loss, valid_acc, valid_f1, valid_auc, valid_log = self.evaluate()
 
             end_time = time.time()
             epoch_mins, epoch_secs = epoch_time(start_time, end_time)
@@ -122,11 +126,13 @@ class Trainer:
             wandb.log({"train_acc": train_acc}, step=epoch)
             wandb.log({"train_f1": train_f1}, step=epoch)
             wandb.log({"train_auc": train_auc}, step=epoch)
+            wandb.log({"train_log": train_log}, step=epoch)
             
             wandb.log({"valid_loss": valid_loss}, step=epoch)
             wandb.log({"valid_acc": valid_acc}, step=epoch)
             wandb.log({"valid_f1": valid_f1}, step=epoch)
             wandb.log({"valid_auc": valid_auc}, step=epoch)
+            wandb.log({"valid_log": valid_log}, step=epoch)
 
             if best_valid_f1 < valid_f1:
                 best_valid_f1 = valid_f1
@@ -134,8 +140,8 @@ class Trainer:
                 torch.save(self.decoder.state_dict(), self.params.save_decoder)
 
             print(f'Epoch: {epoch + 1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
-            print(f'\tTrain Loss: {train_loss:.3f} | train. ACC : {train_acc:.3f} | train. F1 : {train_f1:.3f} | train. AUC : {train_auc:.3f}')
-            print(f'\t Val. Loss: {valid_loss:.3f} | Val. ACC : {valid_acc:.3f} | Val. F1 : {valid_f1:.3f} | Val. AUC : {valid_auc:.3f}')
+            print(f'\tTrain Loss: {train_loss:.3f} | train. ACC : {train_acc:.3f} | train. F1 : {train_f1:.3f} | train. AUC : {train_auc:.3f} | train. log : {train_log:.3f}')
+            print(f'\t Val. Loss: {valid_loss:.3f} | Val. ACC : {valid_acc:.3f} | Val. F1 : {valid_f1:.3f} | Val. AUC : {valid_auc:.3f} | Val. log : {valid_log:.3f}')
 
     def evaluate(self):
         self.encoder.eval()
@@ -144,6 +150,7 @@ class Trainer:
         epoch_acc = 0
         epoch_f1 = 0
         epoch_auc = 0
+        epoch_log = 0
 
         with torch.no_grad():
             for batch in self.valid_iter: 
@@ -168,8 +175,9 @@ class Trainer:
                 epoch_acc += accuracy_score(target.cpu(), output)
                 epoch_f1 += f1_score(target.cpu(), output)
                 epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
-        return epoch_loss / len(self.valid_iter), epoch_acc / len(self.valid_iter),  epoch_f1 / len(self.valid_iter) , epoch_auc / len(self.valid_iter)
+        return epoch_loss / len(self.valid_iter), epoch_acc / len(self.valid_iter),  epoch_f1 / len(self.valid_iter) , epoch_auc / len(self.valid_iter), epoch_log / len(self.valid_iter)
 
     def inference(self):
         self.encoder.load_state_dict(torch.load(self.params.save_encoder))
@@ -180,6 +188,7 @@ class Trainer:
         epoch_acc = 0
         epoch_f1 = 0
         epoch_auc = 0
+        epoch_log = 0
 
         with torch.no_grad():
             for batch in tqdm(self.test_iter): 
@@ -204,10 +213,12 @@ class Trainer:
                 epoch_acc += accuracy_score(target.cpu(), output)
                 epoch_f1 += f1_score(target.cpu(), output)
                 epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
         test_loss = epoch_loss / len(self.test_iter)
         test_acc = epoch_acc / len(self.test_iter)
         test_f1 = epoch_f1 / len(self.test_iter)
         test_auc = epoch_auc / len(self.test_iter)
+        test_log = epoch_log / len(self.test_iter)
 
-        print(f'Test Loss: {test_loss:.3f} | Test ACC: {test_acc:.3f} | Test F1: {test_f1:.3f} | Test AUC: {test_auc:.3f}')
+        print(f'Test Loss: {test_loss:.3f} | Test ACC: {test_acc:.3f} | Test F1: {test_f1:.3f} | Test AUC: {test_auc:.3f} | Test log: {test_log:.3f}')
