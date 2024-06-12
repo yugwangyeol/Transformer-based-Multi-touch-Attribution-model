@@ -196,7 +196,6 @@ def display_attention(source, target, attention, data_path, idx):
     plt.show()
     plt.close()
 
-
 class Params:
     """
     Class that loads hyperparameters from a json file

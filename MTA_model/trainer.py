@@ -12,7 +12,7 @@ from model.loss import MTA_Loss
 from tqdm import tqdm
 from utils import Params
 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score,f1_score,roc_auc_score,log_loss
 
 import wandb
 import numpy as np
@@ -73,8 +73,14 @@ class Trainer:
             self.encoder.train()
             self.decoder.train()
             epoch_loss = 0
-            conversion_epoch_loss = 0
             start_time = time.time()
+            epoch_acc = 0
+            epoch_f1 = 0
+            conversion_epoch_loss = 0
+            epoch_auc = 0
+            epoch_log = 0
+            epoch_conversion = 0
+            best_valid_f1 = 0
 
             for batch in tqdm(self.train_iter):
                 self.optimizer.zero_grad()
@@ -91,7 +97,8 @@ class Trainer:
                 shopping_label = torch.stack([item['shopping'] for item in batch])
                 conversion_label = torch.stack([item['label'] for item in batch])
 
-                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential, segment)
+                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential)
+                #print(encoder_output.shape)
                 cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.decoder(
                     cam_sequential, cate_sequential, price_sequential, segment,encoder_output) #
 
@@ -106,27 +113,46 @@ class Trainer:
                 self.scheduler.step()
 
                 epoch_loss += loss.item()
-                conversion_epoch_loss += conversion_loss.item()
+                output = np.where(output.cpu() > 0.5, 1 , 0)
+                epoch_conversion += conversion_loss
+                epoch_acc += accuracy_score(target.cpu(), output)
+                epoch_f1 += f1_score(target.cpu(), output)
+                epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
             train_loss = epoch_loss / len(self.train_iter)
-            train_conversion_loss = conversion_epoch_loss / len(self.train_iter)
-            valid_loss, valid_acc, valid_conversion_loss = self.evaluate()
+            train_acc = epoch_acc / len(self.train_iter)
+            train_conversion_loss = epoch_conversion / len(self.train_iter)
+            train_f1 = epoch_f1 / len(self.train_iter)
+            train_auc = epoch_auc / len(self.train_iter)
+            train_log = epoch_log / len(self.train_iter)
+
+            valid_loss, valid_acc, valid_conversion_loss ,valid_f1, valid_auc, valid_log = self.evaluate()
 
             end_time = time.time()
             epoch_mins, epoch_secs = epoch_time(start_time, end_time)
             wandb.log({"train_loss": train_loss}, step=epoch)
             wandb.log({"train_conversion_loss": train_conversion_loss}, step=epoch)
+            wandb.log({"train_acc": train_acc}, step=epoch)
+            wandb.log({"train_f1": train_f1}, step=epoch)
+            wandb.log({"train_auc": train_auc}, step=epoch)
+            wandb.log({"train_log": train_log}, step=epoch)
+            
             wandb.log({"valid_loss": valid_loss}, step=epoch)
             wandb.log({"valid_conversion_loss": valid_conversion_loss}, step=epoch)
             wandb.log({"valid_acc": valid_acc}, step=epoch)
+            wandb.log({"valid_f1": valid_f1}, step=epoch)
+            wandb.log({"valid_auc": valid_auc}, step=epoch)
+            wandb.log({"valid_log": valid_log}, step=epoch)
 
-            if valid_loss < best_valid_loss:
-                best_valid_loss = valid_loss
-                #torch.save(self.model.state_dict(), self.params.save_model)
+            if best_valid_f1 < valid_f1:
+                best_valid_f1 = valid_f1
+                torch.save(self.encoder.state_dict(), self.params.save_encoder)
+                torch.save(self.decoder.state_dict(), self.params.save_decoder)
 
             print(f'Epoch: {epoch + 1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
-            print(f'\tTrain Loss: {train_loss:.3f} | Train Conversion Loss : {train_conversion_loss:.3f}')
-            print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Conversion Loss : {valid_conversion_loss:.3f} | Val. ACC : {valid_acc:.3f}')
+            print(f'\tTrain Loss: {train_loss:.3f} | Train conversion Loss: {train_conversion_loss:.3f} | train. ACC : {train_acc:.3f} | train. F1 : {train_f1:.3f} | train. AUC : {train_auc:.3f} | train. log : {train_log:.3f}')
+            print(f'\t Val. Loss: {valid_loss:.3f} | Val. conversion Loss: {valid_conversion_loss:.3f} | Val. ACC : {valid_acc:.3f} | Val. F1 : {valid_f1:.3f} | Val. AUC : {valid_auc:.3f} | Val. log : {valid_log:.3f}')
 
     def evaluate(self):
         self.encoder.eval()
@@ -134,6 +160,10 @@ class Trainer:
         epoch_loss = 0
         epoch_conversion_loss = 0
         epoch_acc = 0
+        epoch_auc = 0
+        epoch_f1 = 0
+        epoch_log = 0
+        best_valid_f1 = 0
 
         with torch.no_grad():
             for batch in self.valid_iter: 
@@ -150,7 +180,7 @@ class Trainer:
                 shopping_label = torch.stack([item['shopping'] for item in batch])
                 conversion_label = torch.stack([item['label'] for item in batch])
 
-                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential, segment)
+                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential)
                 cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.decoder(
                     cam_sequential, cate_sequential, price_sequential, segment,encoder_output) #
                     
@@ -162,18 +192,28 @@ class Trainer:
                 epoch_conversion_loss += conversion_loss.item()
                 output = np.where(output.cpu() > 0.5, 1 , 0)
                 epoch_acc += accuracy_score(target.cpu(), output)
+                epoch_f1 += f1_score(target.cpu(), output)
+                epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
-        return epoch_loss / len(self.valid_iter), epoch_acc / len(self.valid_iter), epoch_conversion_loss / len(self.valid_iter)
+        return epoch_loss / len(self.valid_iter), epoch_acc / len(self.valid_iter), epoch_conversion_loss / len(self.valid_iter), epoch_f1 / len(self.valid_iter), epoch_auc / len(self.valid_iter), epoch_log / len(self.valid_iter)
 
     def inference(self):
-        self.model.load_state_dict(torch.load(self.params.save_model))
-        self.model.eval()
+        self.encoder.load_state_dict(torch.load(self.params.save_encoder))
+        self.decoder.load_state_dict(torch.load(self.params.save_decoder))
+
+        self.encoder.eval()
+        self.decoder.eval()
+
         epoch_loss = 0
         epoch_conversion_loss = 0
         epoch_acc = 0
+        epoch_auc = 0
+        epoch_log = 0
+        epoch_f1 = 0
 
         with torch.no_grad():
-            for batch in self.test_iter:
+            for batch in self.test_iter: 
                 batch = self._move_batch_to_device(batch)
 
                 cam_sequential = torch.stack([item['cam_sequential'] for item in batch])
@@ -187,19 +227,27 @@ class Trainer:
                 shopping_label = torch.stack([item['shopping'] for item in batch])
                 conversion_label = torch.stack([item['label'] for item in batch])
 
-                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.model(
-                    cam_sequential, cate_sequential, price_sequential, segment)
-
+                encoder_output = self.encoder(cam_sequential, cate_sequential, price_sequential)
+                cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = self.decoder(
+                    cam_sequential, cate_sequential, price_sequential, segment,encoder_output) #
+                    
                 output = conversion_output.contiguous().view(-1, conversion_output.shape[-1]).squeeze(1)
                 target = conversion_label.contiguous().view(-1)
                 loss, conversion_loss = self.criterion(cms_output, cms_label, gender_output, gender_label, age_output, age_label,
                                         pvalue_output, pvalue_label, shopping_output, shopping_label, output, target)
-
                 epoch_loss += loss.item()
                 epoch_conversion_loss += conversion_loss.item()
-                epoch_acc += accuracy_score(target.cpu(), output.cpu().argmax(dim=1))
+                output = np.where(output.cpu() > 0.5, 1 , 0)
+                epoch_acc += accuracy_score(target.cpu(), output)
+                epoch_f1 += f1_score(target.cpu(), output)
+                epoch_auc += roc_auc_score(target.cpu(), output)
+                epoch_log += log_loss(target.cpu(), output)
 
         test_loss = epoch_loss / len(self.test_iter)
-        epoch_conversion_loss = epoch_conversion_loss / len(self.test_iter)
-        epoch_acc = epoch_acc / len(self.test_iter)
-        print(f'Test Loss: {test_loss:.3f} | Test Conversion Loss: {epoch_conversion_loss:.3f} | Test ACC: {epoch_acc:.3f}')
+        test_acc = epoch_acc / len(self.test_iter)
+        test_conversion_loss = epoch_conversion_loss / len(self.test_iter)
+        test_f1 = epoch_f1 / len(self.test_iter)
+        test_auc = epoch_auc / len(self.test_iter)
+        test_log = epoch_log / len(self.test_iter)
+
+        print(f'\tTest Loss: {test_loss:.3f} | Test conversion Loss: {test_conversion_loss:.3f} | Test. ACC : {test_acc:.3f} | Test. F1 : {test_f1:.3f} | Test. AUC : {test_auc:.3f} | Test. log : {test_log:.3f}')
