@@ -18,7 +18,7 @@ def main():
     }
     
     # pkl 파일로 저장
-    with open('../../Data3/vocab.pkl', 'wb') as f:
+    with open('../../Data2/vocab.pkl', 'wb') as f:
         pickle.dump(vocab_info, f)
 
 if __name__ == '__main__':
