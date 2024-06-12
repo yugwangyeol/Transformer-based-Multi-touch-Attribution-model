@@ -3,6 +3,7 @@ import torch.nn as nn
 from model.encoder import Encoder
 from model.decoder import Decoder
 from model.GRL import cms_classifier, gender_classifier, age_classifier, pvalue_classifier, shopping_classifier, ConversionClassifier
+
 class Transformer_decoder(nn.Module):
     def __init__(self, params):
         super(Transformer_decoder, self).__init__()

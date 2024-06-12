@@ -36,7 +36,6 @@ def main(config):
         trainer = Trainer(params, config.mode, train_iter=train_iter, valid_iter=valid_iter)
         trainer.to(device)  # 모델과 데이터 이동
         trainer.train()
-
     else:
         # test 데이터셋 로드
         test_data = load_dataset(config.mode, params.max_len)

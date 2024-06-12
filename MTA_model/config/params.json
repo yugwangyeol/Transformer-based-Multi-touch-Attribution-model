@@ -1,6 +1,7 @@
 {
     "model": "transformer",
-    "save_model": "../../model_pt/model.pt",
+    "save_encoder": "./model_pt/encoder.pt",
+    "save_decoder": "./model_pt/decoder.pt",
 
     "mode": "train",
     "optim": "Adam",
@@ -9,15 +10,13 @@
     "clip": 1,
 
     "batch_size": 256,
-    "num_epoch": 600,
+    "num_epoch": 20,
     "warm_steps": 4000,
 
     "hidden_dim": 128,
     "feed_forward_dim": 512,
-    "n_layer": 2,
+    "n_layer": 12,
     "n_head": 4,
     "max_len": 42,
-    "dropout": 0.1,
-
-    "max_seq": 25
+    "dropout": 0.1
 }

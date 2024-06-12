@@ -28,4 +28,3 @@ class MTA_Loss(nn.Module):
         pvalue_loss = self.CE(pvalue_output, pvalue_label)
         shopping_loss = self.CE(shopping_output, shopping_label)
         return (conversion_loss + cms_loss + gender_loss + age_loss + pvalue_loss + shopping_loss), conversion_loss #cms_loss*0.1 + 
-        
