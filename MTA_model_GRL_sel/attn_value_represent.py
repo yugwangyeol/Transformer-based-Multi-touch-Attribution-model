@@ -1,6 +1,7 @@
 import json 
 import pandas as pd 
 import numpy as np
+from tqdm import tqdm
 
 
 def base_attn_df():
@@ -20,7 +21,7 @@ def base_attn_df():
     segment_lst.extend([f'shopping_{i}' for i in range(3)])
 
     ## Columns (Campaign Sequence) - campaign_valid_1000 
-    with open('../../Data2/campaign_valid_1000.json', 'r') as file:
+    with open('../../Data2/campaign_valid_10000.json', 'r') as file:
         campaign_valid_1000 = json.load(file)
     campaign_valid_1000.insert(0,'index')
 
@@ -28,7 +29,6 @@ def base_attn_df():
     attn_df['index'] = pd.Series(segment_lst)
     attn_df = attn_df.set_index('index')
     attn_df = attn_df.applymap(lambda x: np.array([0, 0],dtype=float) if x == 0 else x)
-    print(attn_df)
     return attn_df
 
 def update_test_df(df, lst, segment_index, prefix, value_index):
@@ -41,6 +41,13 @@ def update_test_df(df, lst, segment_index, prefix, value_index):
             array_value[1] += 1
             df.at[f'{prefix}_{segment_idx}', column_idx] = array_value
 
+# applymap을 사용하여 각 배열의 [1]번째 값으로 [0]번째 값을 나누어서 치환
+def mean_calc(array):
+    if array[1] != 0:
+        return array[0] / array[1]
+    else:
+        return 0
+
 
 if __name__ == '__main__':
     """"""""""""" attn_value_lst index description """""""""""""
@@ -48,7 +55,7 @@ if __name__ == '__main__':
     # [5]  -> list type sequence info 
     # [6:] -> list types attention scores 
 
-    with open('/home/work/nas_code_modify/2024_Capstone/to_pang10_3/attn_value_lst.json', 'r') as file:
+    with open('../../Data2/attn_value_lst.json', 'r') as file:
         attn_value_lst = json.load(file)
 
     base_attn_df = base_attn_df()
@@ -59,8 +66,9 @@ if __name__ == '__main__':
     update_test_df(base_attn_df, attn_value_lst, 3, 'pvalue', 9)
     update_test_df(base_attn_df, attn_value_lst, 4, 'shopping', 10)
 
+    base_attn_df = base_attn_df.applymap(mean_calc)
+    base_attn_df.to_csv('../../attn_dfs/attn_df_0612.csv')
     print(base_attn_df)
-    
 
         
 
