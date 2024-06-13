@@ -3,6 +3,7 @@ import argparse
 import os
 import numpy as np
 import json 
+from tqdm import tqdm
 
 import torch
 import pandas as pd
@@ -32,6 +33,10 @@ def load_predict(input_uid):
     user_dataset.columns = ['cam_sequential', 'label', 'cate_sequential', 'price_sequential', 'cms',
                         'gender', 'age', 'pvalue', 'shopping', 'segment']
 
+    # label == 0 인 애들 죽이기 
+    if user_dataset['label'][0] == 0:
+        return
+
     seq_length = len(user_dataset['cam_sequential'][0].split())
     segment_list = ['cms: ' + str(user_dataset['cms'][0]),
                     'gender: ' + str(user_dataset['gender'][0]),
@@ -57,92 +62,94 @@ def load_predict(input_uid):
     single_user_list.append(seq_lst)
     # print('single_user_list len :',len(single_user_list))
 
-    return CustomDataset(user_dataset, 42), seq_length, segment_list , single_user_list
+    return CustomDataset(user_dataset, 42), seq_length, segment_list, single_user_list
 
+params = Params('config/params.json') 
+    # vocab.pkl 파일 로드
+with open('../../Data2/vocab.pkl', 'rb') as f:
+    vocab_info = pickle.load(f)
+
+# params에 최대 인덱스 값을 로드
+params.load_vocab(vocab_info['cam_input_dim'], vocab_info['cate_input_dim'], vocab_info['price_input_dim'])
+### --------------- ###
+
+print('데이터 전처리 완료!')
+
+encoder = Transformer_encoder(params)
+decoder = Transformer_decoder(params)
+encoder.load_state_dict(torch.load('model_pt/encoder.pt'))
+decoder.load_state_dict(torch.load('model_pt/decoder.pt'))
+#print('load pretrained weight')
+encoder.to(params.device)
+decoder.to(params.device)
+#print('model to device')
+encoder.eval()
+decoder.eval()
+
+print('모델 호출 완료!')
 
 def predict(input_uid):
-    params = Params('config/params.json')
-    data_path = '../../Data2' 
-    uid_dataset, seq_length, segment_list, *rest = load_predict(input_uid)
-    single_user_list = rest[0]
+    try:
+        uid_dataset, seq_length, segment_list, *rest = load_predict(input_uid)
+        single_user_list = rest[0]
 
-     # vocab.pkl 파일 로드
-    with open('../../Data2/vocab.pkl', 'rb') as f:
-        vocab_info = pickle.load(f)
-    
-    # params에 최대 인덱스 값을 로드
-    params.load_vocab(vocab_info['cam_input_dim'], vocab_info['cate_input_dim'], vocab_info['price_input_dim'])
-    ### --------------- ###
+        with torch.no_grad():
+            cam_sequential = uid_dataset.cam_sequential.to(params.device)
+            cate_sequential = uid_dataset.cate_sequential.to(params.device)
+            price_sequential = uid_dataset.price_sequential.to(params.device)
+            segment = uid_dataset.segment.to(params.device)
 
-    print('데이터 전처리 완료!')
+            encoder_output = encoder(cam_sequential, cate_sequential, price_sequential)
+            #print(encoder_output.shape)
+            gender_output, age_output, conversion_output, attn_map = decoder(
+                cam_sequential, cate_sequential, price_sequential, segment, encoder_output)
 
-    encoder = Transformer_encoder(params)
-    decoder = Transformer_decoder(params)
-    encoder.load_state_dict(torch.load('./model_pt/encoder.pt'))
-    decoder.load_state_dict(torch.load('./model_pt/decoder.pt'))
-    print('load pretrained weight')
-    encoder.to(params.device)
-    decoder.to(params.device)
-    print('model to device')
-    encoder.eval()
-    decoder.eval()
+            gender_pred = gender_output.squeeze(0).max()
+            age_pred = age_output.squeeze(0).max()
+            conv_pred = conversion_output.squeeze(0).max()
 
-    print('모델 호출 완료!')
+            #print(f'user id> {input_uid}')
+            #print(f'predicted conversion> {conv_pred}')
 
-    with torch.no_grad():
-        cam_sequential = uid_dataset.cam_sequential.to(params.device)
-        cate_sequential = uid_dataset.cate_sequential.to(params.device)
-        price_sequential = uid_dataset.price_sequential.to(params.device)
-        segment = uid_dataset.segment.to(params.device)
+            #print('len : ', len(attn_map)) # 8
+            #print('origin attn_map shape : ', attn_map[0].shape) # torch.size([1, 5, 50])
 
-        encoder_output = encoder(cam_sequential, cate_sequential, price_sequential)
-        print(encoder_output.shape)
-        cms_output, gender_output, age_output, pvalue_output, shopping_output, conversion_output, attn_map = decoder(
-            cam_sequential, cate_sequential, price_sequential, segment, encoder_output)
+            stack_attn_map = torch.stack(attn_map)
+            final_attn_map = torch.mean(stack_attn_map, dim=0).squeeze(0)
+            single_attn_map = torch.sum(final_attn_map, dim=0).squeeze(0)
+            single_attn_map = single_attn_map.unsqueeze(0)
 
-        cms_pred = cms_output.squeeze(0).max()
-        gender_pred = gender_output.squeeze(0).max()
-        age_pred = age_output.squeeze(0).max()
-        pvalue_pred = pvalue_output.squeeze(0).max()
-        shopping_pred = shopping_output.squeeze(0).max()
-        conv_pred = conversion_output.squeeze(0).max()
+            #print(final_attn_map)
 
-        print(f'user id> {input_uid}')
-        print(f'predicted conversion> {conv_pred}')
+            #print('final_attn_map shape: ', final_attn_map.shape)
+            #print('single_attn_map shape: ', single_attn_map.shape)
+            
+            # Attention map 저장 - txt file
+            vis_attn = final_attn_map[:, :seq_length] #padding 부분 제거 
 
-        print('len : ', len(attn_map)) # 8
-        print('origin attn_map shape : ', attn_map[0].shape) # torch.size([1, 5, 50])
+            # append 5 * k values 
+            # 연산량 감소를 위한 반올림
+            vis_attn_list = vis_attn.cpu().numpy().tolist()
+            rounded_vis_attn_list = list(map(lambda sublist: list(map(lambda x: round(x, 5), sublist)), vis_attn_list))
+            for i in rounded_vis_attn_list:
+                single_user_list.append(i)
 
-        stack_attn_map = torch.stack(attn_map)
-        final_attn_map = torch.mean(stack_attn_map, dim=0).squeeze(0)
-        single_attn_map = torch.sum(final_attn_map, dim=0).squeeze(0)
-        single_attn_map = single_attn_map.unsqueeze(0)
+            # print('single_user_list : ',single_user_list)
+            # print('single_user_list len :',len(single_user_list))
+            # print(single_user_list)
+            attn_value_lst.append(single_user_list)
 
-        print('final_attn_map shape: ', final_attn_map.shape)
-        print('single_attn_map shape: ', single_attn_map.shape)
-        
-        # Attention map 저장 - txt file
-        vis_attn = final_attn_map[:, :seq_length] #padding 부분 제거 
+            # save_path = os.path.join(data_path, f'attention_map_{input_uid}.txt')
+            # np.savetxt(save_path, vis_attn.cpu().numpy())
+            # print(f'Attention map saved to {save_path}')
 
-        # append 5 * k values 
-        # 연산량 감소를 위한 반올림 
-        vis_attn_list = vis_attn.cpu().numpy().tolist()
-        rounded_vis_attn_list = list(map(lambda sublist: list(map(lambda x: round(x, 5), sublist)), vis_attn_list))
-        for i in rounded_vis_attn_list:
-            single_user_list.append(i)
-
-        # print('single_user_list : ',single_user_list)
-        # print('single_user_list len :',len(single_user_list))
-        attn_value_lst.append(single_user_list)
-
-        # save_path = os.path.join(data_path, f'attention_map_{input_uid}.txt')
-        # np.savetxt(save_path, vis_attn.cpu().numpy())
-        # print(f'Attention map saved to {save_path}')
-
-        # Attention map 시각화 (whole seg , single seg)
-        # display_attention(source, target, attention, data_path, idx)
-        # display_attention(cam_sequential, segment_list, final_attn_map, data_path, seq_length)
-        # single_display_attention(cam_sequential, segment_list, single_attn_map, data_path, seq_length)
+            # Attention map 시각화 (whole seg , single seg)
+            # display_attention(source, target, attention, data_path, idx)
+            # display_attention(cam_sequential, segment_list, final_attn_map, data_path, seq_length)
+            # single_display_attention(cam_sequential, segment_list, single_attn_map, data_path, seq_length)
+    except Exception as e:
+        # print(e)
+        return
 
 
 if __name__ == '__main__':
@@ -166,10 +173,10 @@ if __name__ == '__main__':
     attn_value_lst = []
 
     # userid를 넣은 반복문  
-    for input_uid in segment_data.head(3)['user_id']: #일시적으로 확인을 위해 수정 
+    for input_uid in tqdm(segment_data['user_id']): #일시적으로 확인을 위해 수정 
         predict(input_uid)
 
     with open('../../Data2/attn_value_lst.json', 'w') as file:
         json.dump(attn_value_lst, file, indent=4)
 
-    print('done')
+    print(attn_value_lst)

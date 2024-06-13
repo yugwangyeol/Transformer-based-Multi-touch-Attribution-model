@@ -66,6 +66,7 @@ class Encoder(nn.Module):
         price_sequential = price_sequential.long()
 
         source_mask = create_source_mask(cam_sequential, self.pad_idx)  # pad 마스크 처리
+        #print(source_mask)
         #source_pos = create_position_vector(cam_sequential, self.pad_idx, self.device)  # position 벡터 생성
 
         source = (self.cam_token_embedding(cam_sequential) + self.cate_token_embedding(cate_sequential) + 
