@@ -59,6 +59,7 @@ def load_predict(input_uid):
     for i in user_dataset['cam_sequential'][0].split():
         seq_lst.append(i)
     
+    seq_lst = seq_lst[:5]
     single_user_list.append(seq_lst)
     # print('single_user_list len :',len(single_user_list))
 
@@ -77,8 +78,8 @@ print('데이터 전처리 완료!')
 
 encoder = Transformer_encoder(params)
 decoder = Transformer_decoder(params)
-encoder.load_state_dict(torch.load('./model_pt/encoder.pt'))
-decoder.load_state_dict(torch.load('./model_pt/decoder.pt'))
+encoder.load_state_dict(torch.load('./model_pt/encoder_pos.pt'))
+decoder.load_state_dict(torch.load('./model_pt/decoder_pos.pt'))
 #print('load pretrained weight')
 encoder.to(params.device)
 decoder.to(params.device)
@@ -139,9 +140,9 @@ def predict(input_uid):
             # print(single_user_list)
             attn_value_lst.append(single_user_list)
 
-            save_path = os.path.join(data_path, f'attention_map_{input_uid}.txt')
-            np.savetxt(save_path, vis_attn.cpu().numpy())
-            print(f'Attention map saved to {save_path}')
+            #save_path = os.path.join(data_path, f'attention_map_{input_uid}.txt')
+            #np.savetxt(save_path, vis_attn.cpu().numpy())
+            #print(f'Attention map saved to {save_path}')
 
             # Attention map 시각화 (whole seg , single seg)
             # display_attention(source, target, attention, data_path, idx)
@@ -173,7 +174,7 @@ if __name__ == '__main__':
     attn_value_lst = []
 
     # userid를 넣은 반복문  
-    for input_uid in tqdm(segment_data['user_id'].head(1)): #일시적으로 확인을 위해 수정 
+    for input_uid in tqdm(segment_data['user_id']): #일시적으로 확인을 위해 수정 
         predict(input_uid)
 
     with open('../../Data2/attn_value_lst.json', 'w') as file:
