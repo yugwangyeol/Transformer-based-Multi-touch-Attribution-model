@@ -28,7 +28,6 @@ wandb.config = {
 
 random.seed(32)
 torch.manual_seed(32)
-torch.backends.cudnn.deterministic = True
 
 class Trainer:
     def __init__(self, params, mode, train_iter=None, valid_iter=None, test_iter=None):
@@ -108,7 +107,8 @@ class Trainer:
                 self.scheduler.step()
 
                 epoch_loss += loss.item()
-                output = np.where(output.cpu() > 0.5, 1 , 0)
+                #output = np.where(output.cpu() > 0.5, 1 , 0)
+                output = (output.cpu() > 0.5).int()
                 epoch_acc += accuracy_score(target.cpu(), output)
                 epoch_f1 += f1_score(target.cpu(), output)
                 conversion_epoch_loss += conversion_loss.item()
@@ -224,11 +224,10 @@ class Trainer:
 
                 epoch_loss += loss.item()
                 epoch_conversion_loss += conversion_loss.item()
-                output1 = np.where(output.cpu() > 0.4, 1 , 0)
-                output = np.where(output.cpu() > 0.7, 1 , 0)
+                output = np.where(output.cpu() > 0.5, 1 , 0)
                 epoch_acc += accuracy_score(target.cpu(), output)
                 epoch_f1 += f1_score(target.cpu(), output)
-                epoch_auc += roc_auc_score(target.cpu(), output1)
+                epoch_auc += roc_auc_score(target.cpu(), output)
                 epoch_log += log_loss(target.cpu(), output)
 
         test_loss = epoch_loss / len(self.test_iter)

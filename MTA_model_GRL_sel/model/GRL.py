@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+dim = 320
+
 class GradReverse(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, lambd=1.0):
@@ -18,7 +20,7 @@ def grad_reverse(x, lambd=1.0):
 class gender_classifier(nn.Module):
     def __init__(self):
         super(gender_classifier, self).__init__()
-        self.fc0 = nn.Linear(5376, 1024) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(dim, 1024) # representation 크기 따라 변경
         self.fc1 = nn.Linear(1024, 100) 
         self.fc2 = nn.Linear(100, 1)
     def forward(self, x):
@@ -34,7 +36,7 @@ class gender_classifier(nn.Module):
 class age_classifier(nn.Module):
     def __init__(self):
         super(age_classifier, self).__init__()
-        self.fc0 = nn.Linear(5376, 1024) # representation 크기 따라 변경
+        self.fc0 = nn.Linear(dim, 1024) # representation 크기 따라 변경
         self.fc1 = nn.Linear(1024, 100) 
         self.fc2 = nn.Linear(100, 7)
     def forward(self, x):
