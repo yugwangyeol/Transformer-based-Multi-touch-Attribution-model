@@ -1,22 +1,61 @@
 # Transformer-based Multi-touch Attribution model
 ### [2024-1] 비즈니스애널리틱스:캡스톤디자인 프로젝트
-- **기간** : 2024.03 - 2024.06 (3개월)
-- **인원** : 총 3인
-- **[발표 자료](https://drive.google.com/file/d/1bL6iyD07jhKa0FoRUavOCmCEoLe_CRLV/view?usp=sharing)**
+* 연구 주제: Transformer 기반의 사용자 데이터 기반 Multi-touch Attribution 모델 제안
+* 목표: 신뢰성 높고 설명/해석 가능한 Attribution 모델 구축
+* 기간: 2024.03 - 2024.06 (3개월)
+* 인원: 총 3인
+* **[발표 자료](https://drive.google.com/file/d/1bL6iyD07jhKa0FoRUavOCmCEoLe_CRLV/view?usp=sharing)**
 
-## 1️⃣ Background
-- 광고 sequence로부터 사용자가 전환(conversion)을 한 이유를 파악 → 마케팅에 활용하고자 함
-- 기존의 MTA 모델과는 달리, **광고의 user segment 사이의 기여도를 attention score를 통해 확인하도록** 구축
-- **활용 데이터셋 : [Taobao dataset](https://tianchi.aliyun.com/dataset/56)**
+## Background
+* 광고 중개 회사의 수익은 사용자가 상품 구매 시 마지막으로 본 광고에 따라 결정됨
+* 수익 극대화를 위해 마지막 광고 최적화 연구 필요
+* 소비자별 패턴이 다르기 때문에 개인화된 광고 분석 필요
+* 기존 MTA 모델의 한계
+   * RNN, LSTM 등의 모델로 인한 낮은 정확도
+   * 유저와의 관계가 독립된 광고 자체의 기여도만 파악
+   * Shap value를 활용한 사후적 광고 기여도 분석
+* **활용 데이터셋 : [Taobao dataset](https://tianchi.aliyun.com/dataset/56)**
   - 출현 빈도 상위 10,000개의 campaign sampling 하여 활용
 
-## 2️⃣ Models
+## Models
 ![image](https://github.com/yugwangyeol/2024_Capstone/assets/94889801/3a963a7e-f7f8-4954-a5e0-9cf9015c1e5c)
-- **Vanilla Transformer** 변형하여 활용
-- Encoder의 입력으로 광고 sequence, Decoder의 입력으로 user segment 활용
-- GRL을 활용하여 광고 sequence에 존재하는 user 편향 제거
+* Encoder-Decoder 구조 기반 설계
+* Encoder: 광고 Sequence 입력 및 GRL을 통한 유저 편향 정보 제거
+* Decoder: Encoder의 Representation과 User Segment 정보로 Conversion 예측
+* Attention map을 통한 user-광고 간 기여도 평가
 
-## 3️⃣ Attribution example
+## Directory Structure
+```
+📦 MTA-Model
+├── 📂 Code/                 # Helper functions and utilities
+├── 📂 MTA_model/           # Base MTA model implementation
+├── 📂 MTA_model_GRL_sel/   # MTA model with GRL
+├── 📂 MTA_model_GRL_sel_pos/ # Position-aware MTA model
+├── 📂 MTA_model_noGRL/     # MTA model without GRL
+└── 📂 preprocessing/       # Data preprocessing scripts
+```
+
+## Training & Test code
+### Dataset
+* Taobao dataset 활용
+  * 상위 10,000개 campaign sampling
+* Nasmedia 기업 데이터 활용
+
+### Training Process
+1. Data 폴더에 `vocab.pkl` 파일이 없을 경우, `build_vocab.py` 우선 실행
+2. 학습 실행:
+```bash
+cd MTA_model_GRL_sel_pos
+python main.py
+```
+
+### Testing & Evaluation
+```bash
+python predict.py
+```
+* `display_attention` 함수로 개별 user의 광고 sequence에 대한 attention map 시각화 가능
+
+## Attribution example
 - Decoder의 Attention map을 활용하여 집계 및 시각화
 - segment 군집별 특징 및 광고 노출 빈도에 따른 기여도 변화 파악 가능
 - 예) 특정 segment 군집에 대해 기여도가 높은 광고 시각화 (20대 / 구매 빈도 ↑)
@@ -27,18 +66,24 @@
 
 ![image](https://github.com/yugwangyeol/2024_Capstone/assets/94889801/06365f78-1570-4b39-90f6-fa63bb3bf4b5)
 
+## Marketing Insights
+* User 특성별 광고 기여도 차이 확인
+* 고객 군집별 유효 광고 파악
+* 광고/매체별 주요 유저층 분석
+* 광고 노출 빈도에 따른 기여도 변화 추적
+* 반복 광고의 효과적인 노출 시점 파악
 
-## 4️⃣ Training & Test code
-### Train
-- Data 폴더에 `vocab.pkl` 파일이 없을 경우, `build_vocab.py` 우선적으로 실행
-- 학습을 위해 아래의 코드 실행
-```
-cd MTA_model_GRL_sel_pos
-python main.py
-```
-### Test
-- test 데이터셋에 대한 성능 평가를 위해 아래의 코드 실행
-```
-python predict.py
-```
-- `predict.py` 내부에서 호출되는 `display_attention` 함수를 활용하여 개별 user의 광고 sequence에 대한 attention map 시각화 가능
+## Contributions
+* Transformer 기반의 새로운 MTA 모델 제안
+* User segment-campaign 간 기여도 분석 가능
+* Attention score를 활용한 다각적 분석
+* 경량화된 파라미터로 빠른 학습 속도와 낮은 비용
+
+## Limitations & Future Work
+* 기존 MTA 모델 대비 다소 낮은 성능
+* 데이터 수량 및 보안 문제로 인한 케이스 부족
+* 충분한 학습 환경 확보 시 성능 개선 가능성 존재
+
+## References
+* [발표 자료](https://drive.google.com/file/d/1bL6iyD07jhKa0FoRUavOCmCEoLe_CRLV/view?usp=sharing)
+* [Taobao Dataset](https://tianchi.aliyun.com/dataset/56)
